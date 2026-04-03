@@ -1,8 +1,6 @@
 package com.SCEMAS.backend.mqtt;
 
 import org.springframework.stereotype.Service;
-import com.SCEMAS.backend.Alert.Service.AlertManager;
-import com.SCEMAS.backend.Data_Management.Service.DataManager;
 
 @Service
 public class TelemetryService {
@@ -26,22 +24,8 @@ public class TelemetryService {
 
         // Later:
         // 1. save to database
-
-
         // 2. check threshold for indicatorType
-        // Send to Alert Manager
-
-        AlertManager alertManager = new AlertManager();
-        alertManager.checkForAlerts(stationId, indicatorType, value);
-
-
-        DataManager dataManager = new DataManager();
-        //Send in data for aggregation
-        dataManager.aggregateData();
-
-
         // 3. create alert if threshold exceeded
         // 4. notify frontend with websocket
-        // Update websocket 
     }
 }

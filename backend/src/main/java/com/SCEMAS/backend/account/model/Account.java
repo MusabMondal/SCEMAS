@@ -24,7 +24,7 @@ public class Account {
     public void setEmail(String email) { this.email = email; }
 
     public AccountType getType() { return type; }
-    public void setType(AccountType type) { this.type = type; }
+    public void setType(AccountType type2) { this.type = type2; }
 
     public String getFirebaseUid() { return firebaseUid; }
     public void setFirebaseUid(String firebaseUid) { this.firebaseUid = firebaseUid; }

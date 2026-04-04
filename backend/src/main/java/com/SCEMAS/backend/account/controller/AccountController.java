@@ -6,44 +6,57 @@ import org.springframework.web.bind.annotation.*;
 import com.SCEMAS.backend.account.model.Account;
 import com.SCEMAS.backend.account.service.AccountService;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
+
 @RestController
 @RequestMapping("/accounts")
 public class AccountController {
     
+    @Autowired
     private final AccountService accountService;
 
     public AccountController(AccountService accountService) {
         this.accountService = accountService;
     }
 
+    // Creating a new account
     @PostMapping
-    public Account createAccount(@RequestBody Account request) {
+    public Account createAccount(@RequestBody Account request) throws Exception {
         return accountService.createAccount(
                 request.getName(),
                 request.getEmail(),
-                request.getType(),
+                request.getType().name(),
                 request.getFirebaseUid()
         );
     }
 
-    @GetMapping("/{id}")
-    public Account getAccount(@PathVariable String id) {
-        return accountService.getAccount(id);
+    // Get account by FirebaseUID
+    @GetMapping("/{firebaseUid}")
+    public Account getAccount(@PathVariable String firebaseUid) throws Exception {
+        return accountService.getAccount(firebaseUid);
     }
 
-    @PutMapping("/{id}")
-    public Account updateAccount(@PathVariable String id, @RequestBody Account request) {
+    // Update account detailes
+    @PutMapping("/{firebaseUid}")
+    public Account updateAccount(@PathVariable String firebaseUid, @RequestBody Account request) throws Exception {
         return accountService.updateAccount(
-                id,
+                firebaseUid,
                 request.getName(),
                 request.getEmail(),
-                request.getType()
+                request.getType().name()
         );
     }
 
-    @DeleteMapping("/{id}")
-    public void deleteAccount(@PathVariable String id) {
-        accountService.deleteAccount(id);
+    // Delete account
+    @DeleteMapping("/{firebaseUid}")
+    public void deleteAccount(@PathVariable String firebaseUid) throws Exception {
+        accountService.deleteAccount(firebaseUid);
+    }
+
+    @GetMapping
+    public List<Account> listaccounts() throws Exception {
+        return accountService.getAllAccounts();
     }
 
 }

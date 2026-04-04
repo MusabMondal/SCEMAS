@@ -2,9 +2,7 @@ package com.SCEMAS.backend.account.service;
 
 
 import org.springframework.stereotype.Service;
-import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.DocumentReference;
-import com.google.cloud.firestore.WriteResult;
+import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 
 import com.SCEMAS.backend.account.model.Account;
@@ -17,8 +15,9 @@ import java.util.concurrent.ExecutionException;
 @Service
 public class AccountService {
 
+
     // Create or update account in Firebase
-    public Account saveAccount(Account account) throws InterruptedException, ExecutionException {
+    private Account saveAccount(Account account) throws InterruptedException, ExecutionException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection("accounts").document(account.getFirebaseUid());
         WriteResult result = docRef.set(account).get();

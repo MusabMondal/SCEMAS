@@ -19,25 +19,7 @@ const FALLBACK_COORDS = { latitude: 43.6532, longitude: -79.3832 };
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 const TORONTO_COORDS: [number, number] = [-79.3832, 43.6532];
 const TORONTO_VIEW_ZOOM = 3;
-const TORONTO_GEOJSON = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: { name: "Toronto" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [[
-          [-79.75, 43.55],
-          [-79.1, 43.55],
-          [-79.1, 43.9],
-          [-79.75, 43.9],
-          [-79.75, 43.55],
-        ]],
-      },
-    },
-  ],
-} as const;
+
 
 const DISPLAY_ORDER = [
   "temperature",
@@ -230,70 +212,58 @@ export default function Home() {
                 })
               }
             >
-              {isTorontoView ? (
-                <Geographies geography={TORONTO_GEOJSON}>
-                  {({ geographies }) =>
-                    geographies.map((geo) => (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        style={{
-                          default: {
-                            fill: "#1f7a59",
-                            stroke: "#86efac",
-                            strokeWidth: 0.8,
-                            outline: "none",
-                          },
-                          hover: {
-                            fill: "#24986e",
-                            stroke: "#a7f3d0",
-                            strokeWidth: 0.9,
-                            outline: "none",
-                          },
-                          pressed: {
-                            fill: "#24986e",
-                            stroke: "#a7f3d0",
-                            strokeWidth: 0.9,
-                            outline: "none",
-                          },
-                        }}
-                      />
-                    ))
-                  }
-                </Geographies>
-              ) : (
-                <Geographies geography={geoUrl}>
-                  {({ geographies }) =>
-                    geographies.map((geo) => (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        style={{
-                          default: {
-                            fill: "#232e38",
-                            stroke: "#58636e",
-                            strokeWidth: 0.6,
-                            outline: "none",
-                          },
-                          hover: {
-                            fill: "#2c3945",
-                            stroke: "#7a8794",
-                            strokeWidth: 0.7,
-                            outline: "none",
-                          },
-                          pressed: {
-                            fill: "#2c3945",
-                            stroke: "#7a8794",
-                            strokeWidth: 0.7,
-                            outline: "none",
-                          },
-                        }}
-                      />
-                    ))
-                  }
-                </Geographies>
-              )}
+                            <Geographies geography={geoUrl}>
+                {({ geographies }) =>
+                  geographies.map((geo) => (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      style={{
+                        default: {
+                          fill: "#232e38",
+                          stroke: "#58636e",
+                          strokeWidth: 0.6,
+                          outline: "none",
+                        },
+                        hover: {
+                          fill: "#2c3945",
+                          stroke: "#7a8794",
+                          strokeWidth: 0.7,
+                          outline: "none",
+                        },
+                        pressed: {
+                          fill: "#2c3945",
+                          stroke: "#7a8794",
+                          strokeWidth: 0.7,
+                          outline: "none",
+                        },
+                      }}
+                    />
+                  ))
+                }
+              </Geographies>
 
+              {isTorontoView ? (
+                <Marker coordinates={TORONTO_COORDS}>
+                  <g>
+                    <circle r={30} fill="#38bdf8" opacity={0.12} />
+                    <circle r={16} fill="#38bdf8" opacity={0.2} />
+                    <text
+                      y={-18}
+                      textAnchor="middle"
+                      style={{
+                        fill: "#7dd3fc",
+                        fontSize: "15px",
+                        fontWeight: 700,
+                        fontFamily: "Arial, sans-serif",
+                        letterSpacing: "0.06em",
+                      }}
+                    >
+                      TORONTO
+                    </text>
+                  </g>
+                </Marker>
+              ) : null}
               <Marker coordinates={markerCoordinates}>
                 <g>
                   <circle r={18} fill="#22c55e" opacity={0.14} />

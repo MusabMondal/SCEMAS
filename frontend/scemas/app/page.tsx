@@ -49,7 +49,7 @@ export default function Home() {
     const timer = window.setTimeout(() => {
       setPosition({
         coordinates: TORONTO_COORDS,
-        zoom: 2.4,
+        zoom: 3.4,
       });
     }, 700);
 
@@ -159,7 +159,7 @@ export default function Home() {
   const handleZoomIn = () => {
     setPosition((prev) => ({
       ...prev,
-      zoom: Math.min(prev.zoom * 1.4, 4),
+      zoom: Math.min(prev.zoom * 1.4, 6),
     }));
   };
 

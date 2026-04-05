@@ -157,12 +157,8 @@ export default function Home() {
 
       <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 p-6 xl:h-[calc(100vh-4rem)] xl:flex-row">
         <section className="relative flex-1 overflow-hidden rounded-2xl border border-zinc-800 bg-[#050a13]">
-          <img
-            src="https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg"
-            alt="World map"
-            className="absolute inset-0 h-full w-full object-cover opacity-30 [filter:brightness(0.4)_contrast(1.2)_saturate(0)]"
-          />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_30%,rgba(16,185,129,0.22),transparent_35%),radial-gradient(circle_at_70%_45%,rgba(56,189,248,0.20),transparent_45%),linear-gradient(180deg,rgba(4,12,22,0.55),rgba(1,5,12,0.88))]" />
+          <WorldMapBackdrop />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_30%,rgba(16,185,129,0.25),transparent_35%),radial-gradient(circle_at_70%_45%,rgba(56,189,248,0.20),transparent_45%),linear-gradient(180deg,rgba(4,12,22,0.45),rgba(1,5,12,0.82))]" />
 
           <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(148,163,184,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.2)_1px,transparent_1px)] [background-size:130px_130px]" />
 
@@ -219,5 +215,31 @@ export default function Home() {
         </aside>
       </main>
     </div>
+  );
+}
+
+
+function WorldMapBackdrop() {
+  return (
+    <svg
+      viewBox="0 0 1000 500"
+      preserveAspectRatio="none"
+      className="absolute inset-0 h-full w-full opacity-55"
+      aria-hidden
+    >
+      <rect x="0" y="0" width="1000" height="500" fill="#0a1220" />
+      <g fill="#374151" stroke="#4b5563" strokeWidth="1.5">
+        <path d="M45 120 L95 95 L170 90 L225 110 L248 150 L224 175 L180 188 L145 205 L95 198 L58 165 Z" />
+        <path d="M185 205 L238 220 L268 248 L255 285 L208 305 L172 292 L163 245 Z" />
+        <path d="M295 105 L342 82 L387 96 L426 132 L411 165 L361 176 L314 150 Z" />
+        <path d="M325 190 L374 205 L404 238 L384 286 L336 318 L287 292 L281 238 Z" />
+        <path d="M450 92 L503 78 L557 88 L603 119 L595 162 L545 178 L486 164 L444 130 Z" />
+        <path d="M520 190 L578 199 L622 228 L612 282 L568 318 L508 334 L465 302 L472 248 Z" />
+        <path d="M592 176 L654 165 L702 190 L722 222 L706 256 L656 264 L621 238 Z" />
+        <path d="M705 258 L748 246 L796 262 L836 296 L826 334 L786 354 L739 344 L698 312 Z" />
+        <path d="M798 126 L848 108 L902 128 L934 158 L922 198 L876 218 L826 204 L794 168 Z" />
+        <path d="M884 306 L921 300 L956 318 L962 346 L942 368 L906 372 L882 352 Z" />
+      </g>
+    </svg>
   );
 }

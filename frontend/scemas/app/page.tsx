@@ -17,6 +17,7 @@ const STATION_ID = "station-001";
 const COLLECTION_NAME = "latest_readings";
 const FALLBACK_COORDS = { latitude: 43.6532, longitude: -79.3832 };
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+const TORONTO_COORDS: [number, number] = [-79.3832, 43.6532];
 
 const DISPLAY_ORDER = [
   "temperature",
@@ -43,6 +44,17 @@ export default function Home() {
     coordinates: [0, 20] as [number, number],
     zoom: 1,
   });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setPosition({
+        coordinates: TORONTO_COORDS,
+        zoom: 2.4,
+      });
+    }, 700);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -188,6 +200,7 @@ export default function Home() {
             <ZoomableGroup
               center={position.coordinates}
               zoom={position.zoom}
+              transitionDuration={550}
               onMoveEnd={(pos) =>
                 setPosition({
                   coordinates: pos.coordinates as [number, number],

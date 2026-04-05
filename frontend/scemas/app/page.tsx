@@ -3,23 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
-import {
-  ComposableMap,
-  Geographies,
-  Geography,
-  Marker,
-  ZoomableGroup,
-} from "react-simple-maps";
 import { getLatestStationReadings, type SensorReading } from "@/api/apiClient";
 import { firestore } from "@/lib/firebase";
 
 const STATION_ID = "station-001";
 const COLLECTION_NAME = "latest_readings";
 const FALLBACK_COORDS = { latitude: 43.6532, longitude: -79.3832 };
-const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
-const TORONTO_COORDS: [number, number] = [-79.3832, 43.6532];
-const TORONTO_VIEW_ZOOM = 3;
-
 
 const DISPLAY_ORDER = [
   "temperature",
@@ -42,21 +31,6 @@ const INDICATOR_LABELS: Record<string, string> = {
 export default function Home() {
   const [readingsByType, setReadingsByType] = useState<Record<string, SensorReading>>({});
   const [error, setError] = useState<string | null>(null);
-  const [position, setPosition] = useState({
-    coordinates: [0, 20] as [number, number],
-    zoom: 1,
-  });
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setPosition({
-        coordinates: TORONTO_COORDS,
-        zoom: 3.4,
-      });
-    }, 700);
-
-    return () => window.clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -143,12 +117,21 @@ export default function Home() {
     [readingsByType],
   );
 
-  const markerCoordinates = useMemo<[number, number]>(() => {
+  const markerCoordinates = useMemo(() => {
     const latitude = latestReading?.latitude ?? FALLBACK_COORDS.latitude;
     const longitude = latestReading?.longitude ?? FALLBACK_COORDS.longitude;
-
-    return [longitude, latitude];
+    return { latitude, longitude };
   }, [latestReading]);
+
+  const mapEmbedUrl = useMemo(() => {
+    const { latitude, longitude } = markerCoordinates;
+    const minLon = longitude - 0.22;
+    const maxLon = longitude + 0.22;
+    const minLat = latitude - 0.12;
+    const maxLat = latitude + 0.12;
+
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${minLon}%2C${minLat}%2C${maxLon}%2C${maxLat}&layer=mapnik&marker=${latitude}%2C${longitude}`;
+  }, [markerCoordinates]);
 
   const lastUpdated = useMemo(() => {
     if (!latestReading?.timestamp) {
@@ -157,22 +140,6 @@ export default function Home() {
 
     return new Date(Number(latestReading.timestamp) * 1000).toLocaleString();
   }, [latestReading]);
-
-  const isTorontoView = position.zoom >= TORONTO_VIEW_ZOOM;
-
-  const handleZoomIn = () => {
-    setPosition((prev) => ({
-      ...prev,
-      zoom: Math.min(prev.zoom * 1.4, 6),
-    }));
-  };
-
-  const handleZoomOut = () => {
-    setPosition((prev) => ({
-      ...prev,
-      zoom: Math.max(prev.zoom / 1.4, 1),
-    }));
-  };
 
   return (
     <div className="min-h-screen bg-[#04070e] text-zinc-100">
@@ -191,128 +158,19 @@ export default function Home() {
 
       <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 p-6 xl:h-[calc(100vh-4rem)] xl:flex-row">
         <section className="relative flex-1 overflow-hidden rounded-2xl border border-zinc-800 bg-[#050a13]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_30%,rgba(16,185,129,0.2),transparent_35%),radial-gradient(circle_at_70%_45%,rgba(56,189,248,0.17),transparent_45%)]" />
-
-          <ComposableMap
-            projection="geoMercator"
-            projectionConfig={{ scale: 155 }}
-            width={1400}
-            height={700}
-            style={{ width: "100%", height: "100%" }}
-            className="relative z-10"
-          >
-            <ZoomableGroup
-              center={position.coordinates}
-              zoom={position.zoom}
-              transitionDuration={550}
-              onMoveEnd={(pos) =>
-                setPosition({
-                  coordinates: pos.coordinates as [number, number],
-                  zoom: pos.zoom,
-                })
-              }
-            >
-                            <Geographies geography={geoUrl}>
-                {({ geographies }) =>
-                  geographies.map((geo) => (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      style={{
-                        default: {
-                          fill: "#232e38",
-                          stroke: "#58636e",
-                          strokeWidth: 0.6,
-                          outline: "none",
-                        },
-                        hover: {
-                          fill: "#2c3945",
-                          stroke: "#7a8794",
-                          strokeWidth: 0.7,
-                          outline: "none",
-                        },
-                        pressed: {
-                          fill: "#2c3945",
-                          stroke: "#7a8794",
-                          strokeWidth: 0.7,
-                          outline: "none",
-                        },
-                      }}
-                    />
-                  ))
-                }
-              </Geographies>
-
-              {isTorontoView ? (
-                <Marker coordinates={TORONTO_COORDS}>
-                  <g>
-                    <circle r={30} fill="#38bdf8" opacity={0.12} />
-                    <circle r={16} fill="#38bdf8" opacity={0.2} />
-                    <text
-                      y={-18}
-                      textAnchor="middle"
-                      style={{
-                        fill: "#7dd3fc",
-                        fontSize: "15px",
-                        fontWeight: 700,
-                        fontFamily: "Arial, sans-serif",
-                        letterSpacing: "0.06em",
-                      }}
-                    >
-                      TORONTO
-                    </text>
-                  </g>
-                </Marker>
-              ) : null}
-              <Marker coordinates={markerCoordinates}>
-                <g>
-                  <circle r={18} fill="#22c55e" opacity={0.14} />
-                  <circle r={11} fill="#22c55e" opacity={0.22} />
-                  <circle r={5.5} fill="#34d399" />
-                  <text
-                    y={24}
-                    textAnchor="middle"
-                    style={{
-                      fill: "#6ee7b7",
-                      fontSize: "13px",
-                      fontWeight: 700,
-                      fontFamily: "Arial, sans-serif",
-                    }}
-                  >
-                    {STATION_ID}
-                  </text>
-                </g>
-              </Marker>
-            </ZoomableGroup>
-          </ComposableMap>
-
-          <div className="pointer-events-none absolute inset-0 z-20 opacity-20 [background-image:linear-gradient(rgba(148,163,184,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.2)_1px,transparent_1px)] [background-size:130px_130px]" />
-
-          <div className="absolute right-4 top-4 z-30 flex flex-col gap-3">
-            <button
-              onClick={handleZoomIn}
-              className="h-10 w-10 rounded-xl border border-white/10 bg-black/60 text-2xl leading-none text-zinc-100 hover:bg-black/75"
-            >
-              +
-            </button>
-            <button
-              onClick={handleZoomOut}
-              className="h-10 w-10 rounded-xl border border-white/10 bg-black/60 text-2xl leading-none text-zinc-100 hover:bg-black/75"
-            >
-              −
-            </button>
-          </div>
+          <iframe
+            title="SCEMAS live station map"
+            src={mapEmbedUrl}
+            className="h-full min-h-[620px] w-full"
+          />
 
           <div className="absolute bottom-4 left-4 z-30 rounded-lg border border-zinc-700/80 bg-black/60 px-3 py-2 text-xs text-zinc-300">
             <p>
               <span className="font-semibold text-zinc-100">Collection:</span> {COLLECTION_NAME}
             </p>
             <p>
-              <span className="font-semibold text-zinc-100">Map mode:</span> {isTorontoView ? "Toronto" : "World"}
-            </p>
-            <p>
-              <span className="font-semibold text-zinc-100">Coordinates:</span> {markerCoordinates[1].toFixed(4)}, {" "}
-              {markerCoordinates[0].toFixed(4)}
+              <span className="font-semibold text-zinc-100">Coordinates:</span> {markerCoordinates.latitude.toFixed(4)}, {" "}
+              {markerCoordinates.longitude.toFixed(4)}
             </p>
             <p>
               <span className="font-semibold text-zinc-100">Last updated:</span> {lastUpdated}

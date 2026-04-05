@@ -1,10 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { getLatestStationReadings, type SensorReading } from "@/api/apiClient";
 import { firestore } from "@/lib/firebase";
+
+declare global {
+  interface Window {
+    L?: any;
+  }
+}
 
 const STATION_ID = "station-001";
 const COLLECTION_NAME = "latest_readings";
@@ -31,15 +37,10 @@ const INDICATOR_LABELS: Record<string, string> = {
 export default function Home() {
   const [readingsByType, setReadingsByType] = useState<Record<string, SensorReading>>({});
   const [error, setError] = useState<string | null>(null);
-  const [zoomedToStation, setZoomedToStation] = useState(false);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setZoomedToStation(true);
-    }, 1200);
-
-    return () => window.clearTimeout(timer);
-  }, []);
+  const [isFlying, setIsFlying] = useState(true);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -132,16 +133,84 @@ export default function Home() {
     return { latitude, longitude };
   }, [latestReading]);
 
-  const worldMapEmbedUrl = "https://www.openstreetmap.org/export/embed.html?bbox=-180%2C-70%2C180%2C85&layer=mapnik";
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
 
-  const stationMapEmbedUrl = useMemo(() => {
-    const { latitude, longitude } = markerCoordinates;
-    const minLon = longitude - 0.22;
-    const maxLon = longitude + 0.22;
-    const minLat = latitude - 0.12;
-    const maxLat = latitude + 0.12;
+    const setupLeafletMap = async () => {
+      if (!mapContainerRef.current || mapRef.current) {
+        return;
+      }
 
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${minLon}%2C${minLat}%2C${maxLon}%2C${maxLat}&layer=mapnik&marker=${latitude}%2C${longitude}`;
+      if (!document.getElementById("leaflet-css")) {
+        const link = document.createElement("link");
+        link.id = "leaflet-css";
+        link.rel = "stylesheet";
+        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+        document.head.appendChild(link);
+      }
+
+      if (!window.L) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("Failed to load Leaflet"));
+          document.body.appendChild(script);
+        });
+      }
+
+      const L = window.L;
+      if (!L || !mapContainerRef.current) {
+        return;
+      }
+
+      const map = L.map(mapContainerRef.current, {
+        zoomControl: true,
+        worldCopyJump: true,
+      }).setView([18, 0], 2);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
+
+      markerRef.current = L.marker([markerCoordinates.latitude, markerCoordinates.longitude]).addTo(map);
+      mapRef.current = map;
+
+      const flyTimer = window.setTimeout(() => {
+        map.flyTo([markerCoordinates.latitude, markerCoordinates.longitude], 11, {
+          duration: 2.8,
+          easeLinearity: 0.25,
+        });
+      }, 800);
+
+      map.once("moveend", () => {
+        setIsFlying(false);
+      });
+
+      cleanup = () => {
+        window.clearTimeout(flyTimer);
+        map.remove();
+        mapRef.current = null;
+      };
+    };
+
+    setupLeafletMap().catch(() => {
+      setError("Failed to initialize map rendering.");
+    });
+
+    return () => {
+      cleanup?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || !markerRef.current) {
+      return;
+    }
+
+    markerRef.current.setLatLng([markerCoordinates.latitude, markerCoordinates.longitude]);
   }, [markerCoordinates]);
 
   const lastUpdated = useMemo(() => {
@@ -169,21 +238,14 @@ export default function Home() {
 
       <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 p-6 xl:h-[calc(100vh-4rem)] xl:flex-row">
         <section className="relative flex-1 overflow-hidden rounded-2xl border border-zinc-800 bg-[#050a13]">
-          <iframe
-            title="SCEMAS world map"
-            src={worldMapEmbedUrl}
-            className={`absolute inset-0 h-full min-h-[620px] w-full origin-center transition-all duration-[1400ms] ease-in-out [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)] ${zoomedToStation ? "pointer-events-none opacity-0 scale-[2.2] -translate-x-[18%] -translate-y-[8%]" : "opacity-100 scale-100 translate-x-0 translate-y-0"}`}
+          <div
+            ref={mapContainerRef}
+            className="h-full min-h-[620px] w-full [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)]"
           />
 
-          <iframe
-            title="SCEMAS station map"
-            src={stationMapEmbedUrl}
-            className={`absolute inset-0 h-full min-h-[620px] w-full transition-opacity duration-700 delay-[700ms] [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)] ${zoomedToStation ? "opacity-100" : "pointer-events-none opacity-0"}`}
-          />
-
-          {!zoomedToStation ? (
+          {isFlying ? (
             <div className="pointer-events-none absolute left-1/2 top-6 z-30 -translate-x-1/2 rounded-full border border-zinc-700/80 bg-black/55 px-4 py-2 text-xs tracking-[0.18em] text-zinc-200">
-              Zooming into Toronto...
+              Flying to Toronto...
             </div>
           ) : null}
 
@@ -194,7 +256,7 @@ export default function Home() {
               <span className="font-semibold text-zinc-100">Collection:</span> {COLLECTION_NAME}
             </p>
             <p>
-              <span className="font-semibold text-zinc-100">Map view:</span> {zoomedToStation ? "Station" : "World"}
+              <span className="font-semibold text-zinc-100">Map view:</span> {isFlying ? "World → Toronto" : "Toronto"}
             </p>
             <p>
               <span className="font-semibold text-zinc-100">Coordinates:</span> {markerCoordinates.latitude.toFixed(4)}, {" "}

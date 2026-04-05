@@ -1,25 +1,13 @@
 package com.SCEMAS.backend.Data_Management.Service;
 
-import org.springframework.stereotype.Service;
-import com.google.cloud.firestore.Firestore;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
-import java.util.ArrayList;
-import com.google.api.core.ApiFuture;
-import com.google.cloud.firestore.QueryDocumentSnapshot;
-import com.google.cloud.firestore.QuerySnapshot;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
 
 @Service
-public class AggregationService() 
+public class AggregationService
 {
-    private final Firestore firestore;
-
-    public SensorService(Firestore firestore) 
-    {
-        this.firestore = firestore;
-    }
-
     // Compute Average
     public double computeAverage(List<Map<String, Object>> readings) {
         if (readings == null || readings.isEmpty()) return 0.0;
@@ -38,59 +26,56 @@ public class AggregationService()
         return count == 0 ? 0.0 : sum / count;
     }
 
+
+
     // Minimum
-    public double computeMinimum(List<Map<String, Object>> readings) {
-        return readings.stream()
-                .map(r -> (Number) r.get("value"))
-                .filter(Objects::nonNull)
-                .mapToDouble(Number::doubleValue)
-                .min()
-                .orElse(0.0);
-    }
-
-    // Maximum
-    public double computeMaximum(List<Map<String, Object>> readings) {
-        return readings.stream()
-                .map(r -> (Number) r.get("value"))
-                .filter(Objects::nonNull)
-                .mapToDouble(Number::doubleValue)
-                .max()
-                .orElse(0.0);
-    }
-
-    // Group by time (hour/day)
-    public Map<String, List<Map<String, Object>>> groupByTime(
-            List<Map<String, Object>> readings,
-            String interval
-    ) {
-        Map<String, List<Map<String, Object>>> grouped = new HashMap<>();
-
-        for (Map<String, Object> r : readings) {
-            Long timestamp = (Long) r.get("timestamp");
-            if (timestamp == null) continue;
-
-            Calendar cal = Calendar.getInstance();
-            cal.setTimeInMillis(timestamp);
-
-            String key;
-
-            if ("hour".equalsIgnoreCase(interval)) {
-                key = cal.get(Calendar.YEAR) + "-" +
-                      cal.get(Calendar.MONTH) + "-" +
-                      cal.get(Calendar.DAY_OF_MONTH) + " " +
-                      cal.get(Calendar.HOUR_OF_DAY);
-            } else if ("day".equalsIgnoreCase(interval)) {
-                key = cal.get(Calendar.YEAR) + "-" +
-                      cal.get(Calendar.MONTH) + "-" +
-                      cal.get(Calendar.DAY_OF_MONTH);
-            } else {
-                key = "unknown";
-            }
-
-            grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
+    public double computeMinimum(List<Map<String, Object>> readings) 
+    {
+        if (readings == null || readings.isEmpty()) 
+        {
+        return 0.0;
         }
 
-        return grouped;
+        Double min = null;
+
+        for (Map<String, Object> reading : readings) 
+        {
+            Object val = reading.get("value");
+
+            if (val instanceof Number) {
+                double num = ((Number) val).doubleValue();
+
+                if (min == null || num < min) {
+                    min = num;
+                }
+            }
+        }
+        return min == null ? 0.0 : min;
+    }
+
+
+
+    // Maximum
+    public double computeMaximum(List<Map<String, Object>> readings) 
+    {
+        if (readings == null || readings.isEmpty()) {
+            return 0.0;
+        }
+
+        Double max = null;
+
+        for (Map<String, Object> reading : readings) {
+            Object val = reading.get("value");
+
+            if (val instanceof Number) {
+                double num = ((Number) val).doubleValue();
+
+                if (max == null || num > max) {
+                    max = num;
+                }
+            }
+        }
+        return max == null ? 0.0 : max;
     }
 
 }

@@ -1,12 +1,12 @@
 package com.SCEMAS.backend.Data_Management.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import com.google.cloud.firestore.Firestore;
 import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 
@@ -21,18 +21,35 @@ public class DataManager {
     }
 
 
-
-    public void aggregateData(String dataType) 
+    public void aggregateData(String dataType, Double currentTimestamp, String intervalRange, String stationID) 
     {
         // data type: what data is being aggregated; i.e. temp, humidity,pressure...
         // retrieve data FOR aggregation
+        // NOTE: AGGREGATION FOR ONE STATION
         try
         {
         // -----------------------------------------------------------------------------------------------
             
-        // 1. GET DATA CORRESPONDING TO INDICATOR TYPE
+        // aggregations should have options for 5-min and 60-min ranges.
 
-            ApiFuture<QuerySnapshot> future = db.collection("sensor_readings").whereEqualTo("indicatorType", dataType).get();
+        double minusFiveTimestamp = currentTimestamp - 300;
+        double minusSixtyTimestamp = currentTimestamp - 3600;
+
+        ApiFuture<QuerySnapshot> future;
+        if(intervalRange.equalsIgnoreCase("five_minutes"))
+        {
+            future = db.collection("sensor_readings") // from db sensor_readings
+            .whereEqualTo("stationID", stationID) // station ID matches
+            .whereGreaterThan("timestamp", minusFiveTimestamp) // interval of data
+            .whereEqualTo("indicatorType", dataType) // correct indicatorType
+            .get();
+        }
+        else // assumes hourly aggregation
+        {
+            future = db.collection("sensor_readings").whereEqualTo("stationID", stationID).whereGreaterThan("timestamp", minusSixtyTimestamp ).whereEqualTo("indicatorType", dataType).get();
+        }
+
+        // 1. GET DATA CORRESPONDING TO INDICATOR TYPE
             List<QueryDocumentSnapshot> documents = future.get().getDocuments();
 
             List<Map<String,Object>> dataResult = new ArrayList<>();
@@ -52,26 +69,20 @@ public class DataManager {
             aggregationResult.put("average",aggregate.computeAverage(dataResult));
             aggregationResult.put("minimum",aggregate.computeMinimum(dataResult));
             aggregationResult.put("maximum",aggregate.computeMaximum(dataResult));
-            aggregationResult.put("groupByTime",aggregate.groupByTime(dataResult, "time?"));
             
-            // NOTE: time?
+            if(intervalRange.equalsIgnoreCase("five_minutes")) aggregationResult.put("intervalMinutes",5);
+            else aggregationResult.put("intervalMinutes",60);
 
-            // Store aggregated data in *database*
-            db.collection("aggregated_data").add(aggregationResult);
+            // Store most recent aggregated data in *database*
+            db.collection("aggregated_data").document(stationID + "_" + dataType).set(aggregationResult);
 
             // will be assuming some structure:
-            /* - aggregatedData
-                    - temperature
-                        // min
-                        // max
-                        // average
-                        // interval: 
-                    - humidity
-                        // min
-                        // max
-                        // average
-                        // interval:
-                    ...
+            /* - aggregated_data
+                    - station1_temperature
+                            // min
+                            // max
+                            // average
+                            // interval: ?
             */ 
         
 
@@ -90,7 +101,7 @@ public class DataManager {
 
 
         ApiFuture<QuerySnapshot> future = db.collection("aggregated_data")
-        .whereEqualTo("indicatorType", aggregatedDataType)
+        .whereEqualTo("dataType", aggregatedDataType)
         .get();
 
             List<QueryDocumentSnapshot> documents = future.get().getDocuments();

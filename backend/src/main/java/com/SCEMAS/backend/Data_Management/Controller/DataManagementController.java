@@ -4,22 +4,21 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.SCEMAS.backend.Data_Management.Service.DataManager;
-
 @RestController
 public class DataManagementController {
 
-    private final DataManager dataService;
-
-    public DataManagementController(DataManager dataMan)
+    @GetMapping("/data-management/aggregation/{stationID}/5mins")
+    public String getAggregatedDataForStation5min(@PathVariable String stationId) 
     {
-        this.dataService = dataMan;
+        // Implementation for fetching data for the given station ID and days
+        return "Data for station: " + stationId + " within the past 5 minutes.";
     }
 
-    @GetMapping("/data-management/{stationId}/{days}")
-    public String getDataForStationAndDays(@PathVariable String stationId, @PathVariable int days) {
+    @GetMapping("/data-management/aggregation/{stationID}/60mins")
+    public String getAggregatedDataForStation60min(@PathVariable String stationId) 
+    {
         // Implementation for fetching data for the given station ID and days
-        return "Data for station: " + stationId + ", Days: " + days;
+        return "Data for station: " + stationId + " within the past 60 minutes.";
     }
     
 }

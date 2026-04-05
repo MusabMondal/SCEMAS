@@ -31,6 +31,15 @@ const INDICATOR_LABELS: Record<string, string> = {
 export default function Home() {
   const [readingsByType, setReadingsByType] = useState<Record<string, SensorReading>>({});
   const [error, setError] = useState<string | null>(null);
+  const [zoomedToStation, setZoomedToStation] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setZoomedToStation(true);
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -123,7 +132,9 @@ export default function Home() {
     return { latitude, longitude };
   }, [latestReading]);
 
-  const mapEmbedUrl = useMemo(() => {
+  const worldMapEmbedUrl = "https://www.openstreetmap.org/export/embed.html?bbox=-180%2C-70%2C180%2C85&layer=mapnik";
+
+  const stationMapEmbedUrl = useMemo(() => {
     const { latitude, longitude } = markerCoordinates;
     const minLon = longitude - 0.22;
     const maxLon = longitude + 0.22;
@@ -159,16 +170,31 @@ export default function Home() {
       <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 p-6 xl:h-[calc(100vh-4rem)] xl:flex-row">
         <section className="relative flex-1 overflow-hidden rounded-2xl border border-zinc-800 bg-[#050a13]">
           <iframe
-            title="SCEMAS live station map"
-            src={mapEmbedUrl}
-            className="h-full min-h-[620px] w-full [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)]"
+            title="SCEMAS world map"
+            src={worldMapEmbedUrl}
+            className={`absolute inset-0 h-full min-h-[620px] w-full transition-opacity duration-1000 [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)] ${zoomedToStation ? "pointer-events-none opacity-0" : "opacity-100"}`}
           />
+
+          <iframe
+            title="SCEMAS station map"
+            src={stationMapEmbedUrl}
+            className={`absolute inset-0 h-full min-h-[620px] w-full transition-opacity duration-1000 [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)] ${zoomedToStation ? "opacity-100" : "pointer-events-none opacity-0"}`}
+          />
+
+          {!zoomedToStation ? (
+            <div className="pointer-events-none absolute left-1/2 top-6 z-30 -translate-x-1/2 rounded-full border border-zinc-700/80 bg-black/55 px-4 py-2 text-xs tracking-[0.18em] text-zinc-200">
+              ZOOMING TO STATION...
+            </div>
+          ) : null}
 
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_30%,rgba(16,185,129,0.18),transparent_35%),radial-gradient(circle_at_70%_45%,rgba(56,189,248,0.14),transparent_45%)]" />
 
           <div className="absolute bottom-4 left-4 z-30 rounded-lg border border-zinc-700/80 bg-black/60 px-3 py-2 text-xs text-zinc-300">
             <p>
               <span className="font-semibold text-zinc-100">Collection:</span> {COLLECTION_NAME}
+            </p>
+            <p>
+              <span className="font-semibold text-zinc-100">Map view:</span> {zoomedToStation ? "Station" : "World"}
             </p>
             <p>
               <span className="font-semibold text-zinc-100">Coordinates:</span> {markerCoordinates.latitude.toFixed(4)}, {" "}

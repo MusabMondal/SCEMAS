@@ -18,6 +18,26 @@ const COLLECTION_NAME = "latest_readings";
 const FALLBACK_COORDS = { latitude: 43.6532, longitude: -79.3832 };
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 const TORONTO_COORDS: [number, number] = [-79.3832, 43.6532];
+const TORONTO_VIEW_ZOOM = 3;
+const TORONTO_GEOJSON = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: { name: "Toronto" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [-79.75, 43.55],
+          [-79.1, 43.55],
+          [-79.1, 43.9],
+          [-79.75, 43.9],
+          [-79.75, 43.55],
+        ]],
+      },
+    },
+  ],
+} as const;
 
 const DISPLAY_ORDER = [
   "temperature",
@@ -156,6 +176,8 @@ export default function Home() {
     return new Date(Number(latestReading.timestamp) * 1000).toLocaleString();
   }, [latestReading]);
 
+  const isTorontoView = position.zoom >= TORONTO_VIEW_ZOOM;
+
   const handleZoomIn = () => {
     setPosition((prev) => ({
       ...prev,
@@ -208,36 +230,69 @@ export default function Home() {
                 })
               }
             >
-              <Geographies geography={geoUrl}>
-                {({ geographies }) =>
-                  geographies.map((geo) => (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      style={{
-                        default: {
-                          fill: "#232e38",
-                          stroke: "#58636e",
-                          strokeWidth: 0.6,
-                          outline: "none",
-                        },
-                        hover: {
-                          fill: "#2c3945",
-                          stroke: "#7a8794",
-                          strokeWidth: 0.7,
-                          outline: "none",
-                        },
-                        pressed: {
-                          fill: "#2c3945",
-                          stroke: "#7a8794",
-                          strokeWidth: 0.7,
-                          outline: "none",
-                        },
-                      }}
-                    />
-                  ))
-                }
-              </Geographies>
+              {isTorontoView ? (
+                <Geographies geography={TORONTO_GEOJSON}>
+                  {({ geographies }) =>
+                    geographies.map((geo) => (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        style={{
+                          default: {
+                            fill: "#1f7a59",
+                            stroke: "#86efac",
+                            strokeWidth: 0.8,
+                            outline: "none",
+                          },
+                          hover: {
+                            fill: "#24986e",
+                            stroke: "#a7f3d0",
+                            strokeWidth: 0.9,
+                            outline: "none",
+                          },
+                          pressed: {
+                            fill: "#24986e",
+                            stroke: "#a7f3d0",
+                            strokeWidth: 0.9,
+                            outline: "none",
+                          },
+                        }}
+                      />
+                    ))
+                  }
+                </Geographies>
+              ) : (
+                <Geographies geography={geoUrl}>
+                  {({ geographies }) =>
+                    geographies.map((geo) => (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        style={{
+                          default: {
+                            fill: "#232e38",
+                            stroke: "#58636e",
+                            strokeWidth: 0.6,
+                            outline: "none",
+                          },
+                          hover: {
+                            fill: "#2c3945",
+                            stroke: "#7a8794",
+                            strokeWidth: 0.7,
+                            outline: "none",
+                          },
+                          pressed: {
+                            fill: "#2c3945",
+                            stroke: "#7a8794",
+                            strokeWidth: 0.7,
+                            outline: "none",
+                          },
+                        }}
+                      />
+                    ))
+                  }
+                </Geographies>
+              )}
 
               <Marker coordinates={markerCoordinates}>
                 <g>
@@ -281,6 +336,9 @@ export default function Home() {
           <div className="absolute bottom-4 left-4 z-30 rounded-lg border border-zinc-700/80 bg-black/60 px-3 py-2 text-xs text-zinc-300">
             <p>
               <span className="font-semibold text-zinc-100">Collection:</span> {COLLECTION_NAME}
+            </p>
+            <p>
+              <span className="font-semibold text-zinc-100">Map mode:</span> {isTorontoView ? "Toronto" : "World"}
             </p>
             <p>
               <span className="font-semibold text-zinc-100">Coordinates:</span> {markerCoordinates[1].toFixed(4)}, {" "}

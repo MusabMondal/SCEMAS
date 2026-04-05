@@ -1,7 +1,25 @@
 package com.SCEMAS.backend.Data_Management.Service;
 
+import org.springframework.stereotype.Service;
+import com.google.cloud.firestore.Firestore;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.QuerySnapshot;
+
+@Service
 public class AggregationService() 
 {
+    private final Firestore firestore;
+
+    public SensorService(Firestore firestore) 
+    {
+        this.firestore = firestore;
+    }
+
     // Compute Average
     public double computeAverage(List<Map<String, Object>> readings) {
         if (readings == null || readings.isEmpty()) return 0.0;

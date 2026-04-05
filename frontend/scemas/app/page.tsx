@@ -8,6 +8,7 @@ import { firestore } from "@/lib/firebase";
 
 const STATION_ID = "station-001";
 const COLLECTION_NAME = "latest_readings";
+const FALLBACK_COORDS = { latitude: 43.6532, longitude: -79.3832 };
 
 const DISPLAY_ORDER = [
   "temperature",
@@ -124,6 +125,21 @@ export default function Home() {
     return new Date(Number(latestReading.timestamp) * 1000).toLocaleString();
   }, [latestReading]);
 
+  const markerPosition = useMemo(() => {
+    const latitude = latestReading?.latitude ?? FALLBACK_COORDS.latitude;
+    const longitude = latestReading?.longitude ?? FALLBACK_COORDS.longitude;
+
+    const left = ((longitude + 180) / 360) * 100;
+    const top = ((90 - latitude) / 180) * 100;
+
+    return {
+      left: `${Math.min(98, Math.max(2, left))}%`,
+      top: `${Math.min(98, Math.max(2, top))}%`,
+      latitude,
+      longitude,
+    };
+  }, [latestReading]);
+
   return (
     <div className="min-h-screen bg-[#04070e] text-zinc-100">
       <header className="border-b border-zinc-800/90 bg-[#050a13]/95 backdrop-blur">
@@ -140,25 +156,34 @@ export default function Home() {
       </header>
 
       <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 p-6 xl:h-[calc(100vh-4rem)] xl:flex-row">
-        <section className="relative flex-1 overflow-hidden rounded-2xl border border-zinc-800 bg-[#0a121f]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.2),transparent_45%),radial-gradient(circle_at_80%_30%,rgba(14,165,233,0.15),transparent_45%),linear-gradient(180deg,#111827_0%,#030712_100%)]" />
-          <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(148,163,184,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.18)_1px,transparent_1px)] [background-size:120px_120px]" />
+        <section className="relative flex-1 overflow-hidden rounded-2xl border border-zinc-800 bg-[#050a13]">
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg"
+            alt="World map"
+            className="absolute inset-0 h-full w-full object-cover opacity-30 [filter:brightness(0.4)_contrast(1.2)_saturate(0)]"
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_30%,rgba(16,185,129,0.22),transparent_35%),radial-gradient(circle_at_70%_45%,rgba(56,189,248,0.20),transparent_45%),linear-gradient(180deg,rgba(4,12,22,0.55),rgba(1,5,12,0.88))]" />
 
-          <div className="absolute left-[32%] top-[27%] h-48 w-64 rounded-full bg-slate-600/40 blur-2xl" />
-          <div className="absolute left-[58%] top-[32%] h-44 w-56 rounded-full bg-slate-500/40 blur-2xl" />
-          <div className="absolute left-[42%] top-[53%] h-56 w-72 rounded-full bg-slate-700/30 blur-3xl" />
+          <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(148,163,184,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.2)_1px,transparent_1px)] [background-size:130px_130px]" />
 
-          <div className="absolute left-[46%] top-[42%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2">
+          <div
+            className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2"
+            style={{ left: markerPosition.left, top: markerPosition.top }}
+          >
             <span className="relative flex h-4 w-4 items-center justify-center">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/75" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-300" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/80" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-300 shadow-[0_0_18px_3px_rgba(16,185,129,0.5)]" />
             </span>
-            <p className="rounded bg-black/50 px-2 py-1 text-xs font-semibold text-emerald-300">{STATION_ID}</p>
+            <p className="rounded bg-black/55 px-2 py-1 text-xs font-semibold text-emerald-300">{STATION_ID}</p>
           </div>
 
-          <div className="absolute bottom-4 left-4 rounded-lg border border-zinc-700/80 bg-black/50 px-3 py-2 text-xs text-zinc-300">
+          <div className="absolute bottom-4 left-4 rounded-lg border border-zinc-700/80 bg-black/60 px-3 py-2 text-xs text-zinc-300">
             <p>
               <span className="font-semibold text-zinc-100">Collection:</span> {COLLECTION_NAME}
+            </p>
+            <p>
+              <span className="font-semibold text-zinc-100">Coordinates:</span> {markerPosition.latitude.toFixed(4)}, {" "}
+              {markerPosition.longitude.toFixed(4)}
             </p>
             <p>
               <span className="font-semibold text-zinc-100">Last updated:</span> {lastUpdated}

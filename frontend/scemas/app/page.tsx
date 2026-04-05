@@ -172,18 +172,18 @@ export default function Home() {
           <iframe
             title="SCEMAS world map"
             src={worldMapEmbedUrl}
-            className={`absolute inset-0 h-full min-h-[620px] w-full transition-opacity duration-1000 [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)] ${zoomedToStation ? "pointer-events-none opacity-0" : "opacity-100"}`}
+            className={`absolute inset-0 h-full min-h-[620px] w-full origin-center transition-all duration-[1400ms] ease-in-out [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)] ${zoomedToStation ? "pointer-events-none opacity-0 scale-[2.2] -translate-x-[18%] -translate-y-[8%]" : "opacity-100 scale-100 translate-x-0 translate-y-0"}`}
           />
 
           <iframe
             title="SCEMAS station map"
             src={stationMapEmbedUrl}
-            className={`absolute inset-0 h-full min-h-[620px] w-full transition-opacity duration-1000 [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)] ${zoomedToStation ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            className={`absolute inset-0 h-full min-h-[620px] w-full transition-opacity duration-700 delay-[700ms] [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)] ${zoomedToStation ? "opacity-100" : "pointer-events-none opacity-0"}`}
           />
 
           {!zoomedToStation ? (
             <div className="pointer-events-none absolute left-1/2 top-6 z-30 -translate-x-1/2 rounded-full border border-zinc-700/80 bg-black/55 px-4 py-2 text-xs tracking-[0.18em] text-zinc-200">
-              ZOOMING TO STATION...
+              Zooming into Toronto...
             </div>
           ) : null}
 

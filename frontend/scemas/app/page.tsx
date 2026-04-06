@@ -3,18 +3,46 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { fetchLatestStationReadings, type SensorReading } from "@/api/apiClient";
+import {
+  fetchActiveAlerts,
+  fetchLatestStationReadings,
+  type Alert,
+  type SensorReading,
+} from "@/api/apiClient";
 import { firestore } from "@/lib/firebase";
+
+type LeafletMap = {
+  flyTo: (coords: [number, number], zoom: number, options?: { duration?: number; easeLinearity?: number }) => void;
+  once: (event: string, handler: () => void) => void;
+  remove: () => void;
+};
+
+type LeafletMarker = {
+  setLatLng: (coords: [number, number]) => void;
+};
+
+type LeafletNamespace = {
+  map: (
+    element: HTMLDivElement,
+    options: { zoomControl: boolean; worldCopyJump: boolean },
+  ) => LeafletMap & { setView: (coords: [number, number], zoom: number) => LeafletMap };
+  tileLayer: (
+    url: string,
+    options: { maxZoom: number; attribution: string },
+  ) => { addTo: (map: LeafletMap) => void };
+  marker: (coords: [number, number]) => { addTo: (map: LeafletMap) => LeafletMarker };
+};
 
 declare global {
   interface Window {
-    L?: any;
+    L?: LeafletNamespace;
   }
 }
 
 const STATION_ID = "station-001";
 const COLLECTION_NAME = "latest_readings";
 const FALLBACK_COORDS = { latitude: 43.6532, longitude: -79.3832 };
+const ALERT_REFRESH_INTERVAL_MS = 60_000;
 
 const DISPLAY_ORDER = [
   "temperature",
@@ -36,11 +64,14 @@ const INDICATOR_LABELS: Record<string, string> = {
 
 export default function Home() {
   const [readingsByType, setReadingsByType] = useState<Record<string, SensorReading>>({});
+  const [activeAlerts, setActiveAlerts] = useState<Alert[]>([]);
+  const [alertIndex, setAlertIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [alertError, setAlertError] = useState<string | null>(null);
   const [isFlying, setIsFlying] = useState(true);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const markerRef = useRef<LeafletMarker | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -100,6 +131,70 @@ export default function Home() {
     return () => {
       mounted = false;
       unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    let intervalId: number | undefined;
+
+    const syncAlerts = async () => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+
+      try {
+        const alerts = await fetchActiveAlerts(STATION_ID);
+        if (!mounted) {
+          return;
+        }
+
+        setActiveAlerts(alerts);
+        setAlertError(null);
+        setAlertIndex((previous) => {
+          if (alerts.length === 0) {
+            return 0;
+          }
+
+          return Math.min(previous, alerts.length - 1);
+        });
+      } catch (apiError) {
+        if (!mounted) {
+          return;
+        }
+
+        setAlertError(apiError instanceof Error ? apiError.message : "Failed to fetch active alerts");
+      }
+    };
+
+    const startPolling = () => {
+      void syncAlerts();
+
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
+
+      intervalId = window.setInterval(() => {
+        void syncAlerts();
+      }, ALERT_REFRESH_INTERVAL_MS);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void syncAlerts();
+      }
+    };
+
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      mounted = false;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
     };
   }, []);
 
@@ -203,7 +298,7 @@ export default function Home() {
     return () => {
       cleanup?.();
     };
-  }, []);
+  }, [markerCoordinates.latitude, markerCoordinates.longitude]);
 
   useEffect(() => {
     if (!mapRef.current || !markerRef.current) {
@@ -220,6 +315,32 @@ export default function Home() {
 
     return new Date(Number(latestReading.timestamp) * 1000).toLocaleString();
   }, [latestReading]);
+
+  const hasAlerts = activeAlerts.length > 0;
+  const activeAlert = hasAlerts ? activeAlerts[alertIndex] : null;
+
+  const activeAlertTimestamp = useMemo(() => {
+    if (!activeAlert?.createdAt) {
+      return null;
+    }
+
+    const createdDate = new Date(activeAlert.createdAt);
+    return Number.isNaN(createdDate.getTime()) ? activeAlert.createdAt : createdDate.toLocaleString();
+  }, [activeAlert]);
+
+  const cycleAlert = (direction: "next" | "previous") => {
+    setAlertIndex((previous) => {
+      if (activeAlerts.length === 0) {
+        return 0;
+      }
+
+      if (direction === "next") {
+        return (previous + 1) % activeAlerts.length;
+      }
+
+      return (previous - 1 + activeAlerts.length) % activeAlerts.length;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#04070e] text-zinc-100">
@@ -246,6 +367,92 @@ export default function Home() {
           {isFlying ? (
             <div className="pointer-events-none absolute left-1/2 top-6 z-30 -translate-x-1/2 rounded-full border border-zinc-700/80 bg-black/55 px-4 py-2 text-xs tracking-[0.18em] text-zinc-200">
               Flying to Toronto...
+            </div>
+          ) : null}
+
+          {hasAlerts || alertError ? (
+            <div className="absolute right-4 top-4 z-30 w-[min(420px,calc(100%-2rem))] rounded-2xl border border-amber-400/40 bg-[#130c08]/92 p-4 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur">
+              <div className="mb-3 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-amber-300">
+                    Active Alerts
+                  </p>
+                  <h2 className="mt-1 text-lg font-semibold text-zinc-50">
+                    {hasAlerts ? "Station conditions require attention" : "Alert feed unavailable"}
+                  </h2>
+                </div>
+
+                {hasAlerts ? (
+                  <span className="rounded-full border border-amber-300/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-100">
+                    {alertIndex + 1}/{activeAlerts.length}
+                  </span>
+                ) : null}
+              </div>
+
+              {activeAlert ? (
+                <>
+                  <div className="rounded-2xl border border-amber-200/10 bg-black/25 p-4">
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-amber-400/15 px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-amber-200">
+                        {activeAlert.severity}
+                      </span>
+                      <span className="rounded-full border border-zinc-700 px-2.5 py-1 text-[0.7rem] uppercase tracking-[0.2em] text-zinc-300">
+                        {activeAlert.condition ?? "Manual"}
+                      </span>
+                    </div>
+
+                    <p className="text-sm leading-6 text-zinc-100">{activeAlert.message}</p>
+
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-zinc-300">
+                      <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 py-2">
+                        <p className="uppercase tracking-[0.18em] text-zinc-500">Station</p>
+                        <p className="mt-1 font-medium text-zinc-100">{activeAlert.stationId}</p>
+                      </div>
+                      <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 py-2">
+                        <p className="uppercase tracking-[0.18em] text-zinc-500">Value</p>
+                        <p className="mt-1 font-medium text-zinc-100">{activeAlert.value}</p>
+                      </div>
+                    </div>
+
+                    {activeAlertTimestamp ? (
+                      <p className="mt-4 text-xs text-zinc-400">Triggered {activeAlertTimestamp}</p>
+                    ) : null}
+                  </div>
+
+                  {activeAlerts.length > 1 ? (
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <p className="text-xs text-zinc-400">
+                        Polling once per minute while this tab is visible.
+                      </p>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => cycleAlert("previous")}
+                          className="rounded-full border border-zinc-700 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-100 transition hover:border-amber-300/60 hover:text-amber-100"
+                          aria-label="Show previous alert"
+                        >
+                          ←
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => cycleAlert("next")}
+                          className="rounded-full border border-zinc-700 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-100 transition hover:border-amber-300/60 hover:text-amber-100"
+                          aria-label="Show next alert"
+                        >
+                          →
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs text-zinc-400">
+                      Polling once per minute while this tab is visible.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm leading-6 text-red-100">{alertError}</p>
+              )}
             </div>
           ) : null}
 

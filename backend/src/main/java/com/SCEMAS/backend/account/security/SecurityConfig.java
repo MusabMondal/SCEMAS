@@ -10,12 +10,20 @@ package com.SCEMAS.backend.account.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -27,14 +35,38 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http.csrf(csrf -> csrf.disable())   // <--- disable CSRF using lambda
+        http
+            .cors(cors -> {})
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/admin/**").hasRole("SYSTEM_ADMINISTRATOR")
-                .requestMatchers("/operator/**").hasAnyRole("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR")
+                .requestMatchers(HttpMethod.POST, "/accounts/**").permitAll() // 
+
+                // Admin-only endpoints
+                .requestMatchers("/admin/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR")
+
+                // Operator endpoints
+                .requestMatchers("/operator/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR")
+
+                // Public endpoints
+                .requestMatchers("/accounts/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR", "PUBLIC_USER")
+                .requestMatchers("/public/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR", "PUBLIC_USER")
+
                 .anyRequest().authenticated()
             )
             .addFilterBefore(firebaseAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        config.setAllowedMethods(List.of("*"));
+        config.setAllowedHeaders(List.of("*"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

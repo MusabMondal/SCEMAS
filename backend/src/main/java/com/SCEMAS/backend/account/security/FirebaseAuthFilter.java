@@ -35,7 +35,8 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
     private AccountService accountService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         String header = request.getHeader("Authorization");
 
@@ -43,15 +44,24 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
             String token = header.substring(7);
 
             try {
+                // Verify Firebase ID token
                 FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
                 String uid = decodedToken.getUid();
 
                 Account account = accountService.getAccountInternal(uid);
+                
+                if (account == null &&
+                    "POST".equalsIgnoreCase(request.getMethod()) &&
+                    request.getRequestURI().startsWith("/accounts")) {
 
-                if (account == null) {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    // allow first-time signup
+                    request.setAttribute("firebaseUid", uid);
+                    // don’t set role yet
+                    filterChain.doFilter(request, response);
                     return;
                 }
+
+                // Existing user: set attributes and authenticate
                 request.setAttribute("firebaseUid", account.getFirebaseUid());
                 request.setAttribute("role", account.getType());
 
@@ -65,7 +75,9 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                         );
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
+
             } catch (Exception e) {
+                e.printStackTrace();
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }

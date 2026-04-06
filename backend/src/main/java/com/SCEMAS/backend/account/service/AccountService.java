@@ -15,10 +15,9 @@ import java.util.concurrent.ExecutionException;
 @Service
 public class AccountService {
 
-    private final Firestore db = FirestoreClient.getFirestore();
-
     // Create or update account in Firebase
     private Account saveAccount(Account account) throws InterruptedException, ExecutionException {
+        Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection("accounts").document(account.getFirebaseUid());
         docRef.set(account).get();
         return account;
@@ -43,7 +42,7 @@ public class AccountService {
     public Account getAccount(String requesterUid, AccountType requesterRole, String targetUid) throws InterruptedException, ExecutionException {
 
         validateAccess(requesterUid, requesterRole, targetUid);
-
+        Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection("accounts").document(targetUid);
         Account account = docRef.get().get().toObject(Account.class);
 
@@ -57,7 +56,7 @@ public class AccountService {
     public void deleteAccount(String requesterUid, AccountType requesterRole, String targetUid) throws InterruptedException, ExecutionException {
 
         validateAccess(requesterUid, requesterRole, targetUid);
-
+        Firestore db = FirestoreClient.getFirestore();
         db.collection("accounts").document(targetUid).delete().get();
 
         // TODO: audit log
@@ -70,7 +69,7 @@ public class AccountService {
         if (requesterRole != AccountType.SYSTEM_ADMINISTRATOR) {
             throw new RuntimeException("Unauthorized");
         }
-
+        Firestore db = FirestoreClient.getFirestore();
         List<Account> accounts = new ArrayList<>();
         db.collection("accounts").get().get().getDocuments()
                 .forEach(doc -> accounts.add(doc.toObject(Account.class)));
@@ -97,7 +96,7 @@ public class AccountService {
             throws InterruptedException, ExecutionException {
 
         validateAccess(requesterUid, requesterRole, targetUid);
-
+        Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection("accounts").document(targetUid);
         Account account = docRef.get().get().toObject(Account.class);
 
@@ -116,6 +115,7 @@ public class AccountService {
 
     // Used by the authentication filter
     public Account getAccountInternal(String firebaseUid)throws InterruptedException, ExecutionException {
+        Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection("accounts").document(firebaseUid);
         return docRef.get().get().toObject(Account.class);
     }

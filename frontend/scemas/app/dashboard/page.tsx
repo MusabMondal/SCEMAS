@@ -18,6 +18,7 @@ type ReadingsByStation = Record<string, Record<string, SensorReading>>;
 export default function DashboardPage() {
   const [readingsByStation, setReadingsByStation] = useState<ReadingsByStation>({});
   const [aggregatedDataByStation, setAggregatedDataByStation] = useState<Record<string, AggregatedDataPoint[]>>({});
+  const [selectedStationId, setSelectedStationId] = useState<string>("");
   const [aggregationInterval, setAggregationInterval] = useState(DEFAULT_AGGREGATION_INTERVAL);
   const [aggregationIndicatorType, setAggregationIndicatorType] = useState(DEFAULT_INDICATOR);
   const [error, setError] = useState<string | null>(null);
@@ -58,8 +59,16 @@ export default function DashboardPage() {
 
   const stationIds = useMemo(() => Object.keys(readingsByStation).sort(), [readingsByStation]);
 
-  useEffect(() => {
+  const effectiveSelectedStationId = useMemo(() => {
     if (!stationIds.length) {
+      return "";
+    }
+
+    return stationIds.includes(selectedStationId) ? selectedStationId : stationIds[0];
+  }, [selectedStationId, stationIds]);
+
+  useEffect(() => {
+    if (!effectiveSelectedStationId) {
       return;
     }
 
@@ -67,23 +76,19 @@ export default function DashboardPage() {
 
     const loadAggregatedData = async () => {
       try {
-        const entries = await Promise.all(
-          stationIds.map(async (stationId) => {
-            const stationAggregate = await fetchStationAggregatedData(
-              stationId,
-              aggregationInterval,
-              aggregationIndicatorType,
-            );
-            return [stationId, stationAggregate] as const;
-          }),
+        const selectedStationAggregate = await fetchStationAggregatedData(
+          effectiveSelectedStationId,
+          aggregationInterval,
+          aggregationIndicatorType,
         );
 
         if (!active) {
           return;
         }
 
-        const aggregatedMap = Object.fromEntries(entries);
-        setAggregatedDataByStation(aggregatedMap);
+        setAggregatedDataByStation({
+          [effectiveSelectedStationId]: selectedStationAggregate,
+        });
       } catch (apiError) {
         if (active) {
           setError(apiError instanceof Error ? apiError.message : "Failed to load aggregated data");
@@ -96,7 +101,7 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [aggregationIndicatorType, aggregationInterval, stationIds]);
+  }, [aggregationIndicatorType, aggregationInterval, effectiveSelectedStationId]);
 
   const markers = useMemo(
     () =>
@@ -121,26 +126,26 @@ export default function DashboardPage() {
     [readingsByStation, stationIds],
   );
 
-  const graphSeries = useMemo(
-    () =>
-      stationIds.map((stationId) => {
-        const stationAggregate = aggregatedDataByStation[stationId] ?? [];
+  const graphSeries = useMemo(() => {
+    if (!effectiveSelectedStationId) {
+      return [];
+    }
 
-        if (stationAggregate.length) {
-          return { stationId, points: stationAggregate };
-        }
+    const stationAggregate = aggregatedDataByStation[effectiveSelectedStationId] ?? [];
 
-        const fallbackPoints = Object.values(readingsByStation[stationId] ?? {})
-          .filter((reading) => reading.indicatorType === aggregationIndicatorType)
-          .map((reading) => ({
-            timestamp: Number(reading.timestamp),
-            value: Number(reading.value),
-          }));
+    if (stationAggregate.length) {
+      return [{ stationId: effectiveSelectedStationId, points: stationAggregate }];
+    }
 
-        return { stationId, points: fallbackPoints };
-      }),
-    [aggregatedDataByStation, aggregationIndicatorType, readingsByStation, stationIds],
-  );
+    const fallbackPoints = Object.values(readingsByStation[effectiveSelectedStationId] ?? {})
+      .filter((reading) => reading.indicatorType === aggregationIndicatorType)
+      .map((reading) => ({
+        timestamp: Number(reading.timestamp),
+        value: Number(reading.value),
+      }));
+
+    return [{ stationId: effectiveSelectedStationId, points: fallbackPoints }];
+  }, [aggregatedDataByStation, aggregationIndicatorType, effectiveSelectedStationId, readingsByStation]);
 
   return (
     <div className="min-h-screen bg-[#04070e] text-zinc-100">
@@ -175,6 +180,18 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold">Aggregated Data</h2>
 
             <select
+              value={effectiveSelectedStationId}
+              onChange={(event) => setSelectedStationId(event.target.value)}
+              className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs"
+            >
+              {stationIds.map((stationId) => (
+                <option key={stationId} value={stationId}>
+                  {stationId}
+                </option>
+              ))}
+            </select>
+
+            <select
               value={aggregationIndicatorType}
               onChange={(event) => setAggregationIndicatorType(event.target.value)}
               className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs"
@@ -198,8 +215,8 @@ export default function DashboardPage() {
           </div>
 
           <p className="mb-3 text-xs text-zinc-400">
-            Using endpoint: /api/data-management/aggregation/{`{stationId}`}/{aggregationInterval}?indicatorType=
-            {aggregationIndicatorType}
+            Using endpoint: /api/data-management/aggregation/{effectiveSelectedStationId || `{stationId}`}/{aggregationInterval}
+            ?indicatorType={aggregationIndicatorType}
           </p>
           <AggregatedLineGraph series={graphSeries} />
         </section>

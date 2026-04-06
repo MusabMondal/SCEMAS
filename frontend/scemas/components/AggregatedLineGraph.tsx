@@ -16,7 +16,12 @@ const COLORS = ["#34d399", "#38bdf8", "#f472b6", "#a78bfa", "#fbbf24", "#fb7185"
 
 export function AggregatedLineGraph({ series }: AggregatedLineGraphProps) {
   const graph = useMemo(() => {
-    const merged = series.flatMap((item) => item.points.map((point) => ({ ...point, stationId: item.stationId })));
+    const normalizedSeries = series.map((stationSeries) => ({
+      ...stationSeries,
+      points: [...stationSeries.points].sort((a, b) => a.timestamp - b.timestamp),
+    }));
+
+    const merged = normalizedSeries.flatMap((item) => item.points.map((point) => ({ ...point, stationId: item.stationId })));
 
     if (!merged.length) {
       return null;
@@ -47,7 +52,7 @@ export function AggregatedLineGraph({ series }: AggregatedLineGraphProps) {
       return height - padding - ((value - minY) / (maxY - minY)) * (height - padding * 2);
     };
 
-    return { width, height, padding, minY, maxY, scaleX, scaleY };
+    return { width, height, padding, minY, maxY, scaleX, scaleY, normalizedSeries };
   }, [series]);
 
   if (!graph) {
@@ -76,13 +81,14 @@ export function AggregatedLineGraph({ series }: AggregatedLineGraphProps) {
           stroke="#52525b"
         />
 
-        {series.map((stationSeries, index) => {
+        {graph.normalizedSeries.map((stationSeries, index) => {
+          const color = COLORS[index % COLORS.length];
+
           if (!stationSeries.points.length) {
             return null;
           }
 
           const d = stationSeries.points
-            .sort((a, b) => a.timestamp - b.timestamp)
             .map((point, pointIndex) => {
               const x = graph.scaleX(point.timestamp);
               const y = graph.scaleY(point.value);
@@ -90,7 +96,21 @@ export function AggregatedLineGraph({ series }: AggregatedLineGraphProps) {
             })
             .join(" ");
 
-          return <path key={stationSeries.stationId} d={d} fill="none" stroke={COLORS[index % COLORS.length]} strokeWidth="2" />;
+          return (
+            <g key={stationSeries.stationId}>
+              {stationSeries.points.length > 1 ? <path d={d} fill="none" stroke={color} strokeWidth="2" /> : null}
+
+              {stationSeries.points.map((point, pointIndex) => (
+                <circle
+                  key={`${stationSeries.stationId}-${point.timestamp}-${pointIndex}`}
+                  cx={graph.scaleX(point.timestamp)}
+                  cy={graph.scaleY(point.value)}
+                  r={4}
+                  fill={color}
+                />
+              ))}
+            </g>
+          );
         })}
       </svg>
 

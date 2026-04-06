@@ -32,6 +32,7 @@ public class AccountService {
         }
     }
 
+    // Used to validate which account can access certain features such as "getAccount"
     private void validateAccess(String requesterUid, AccountType requesterRole, String targetUid) {
         if (requesterRole != AccountType.SYSTEM_ADMINISTRATOR && !requesterUid.equals(targetUid)) {
             throw new RuntimeException("Unauthorized");
@@ -77,8 +78,8 @@ public class AccountService {
         return accounts;
     }
 
-    public Account createAccount(String name, String email, String type, String firebaseUid)
-            throws InterruptedException, ExecutionException {
+    // Creating a new account
+    public Account createAccount(String name, String email, String type, String firebaseUid) throws InterruptedException, ExecutionException {
 
         Account account = new Account();
         account.setName(name);
@@ -91,8 +92,8 @@ public class AccountService {
         return saveAccount(account);
     }
 
-    public Account updateAccount(String requesterUid, AccountType requesterRole,
-                                 String targetUid, String name, String email, String type)
+    // Updating an account
+    public Account updateAccount(String requesterUid, AccountType requesterRole, String targetUid, String name, String email, String type)
             throws InterruptedException, ExecutionException {
 
         validateAccess(requesterUid, requesterRole, targetUid);
@@ -113,6 +114,7 @@ public class AccountService {
         return saveAccount(account);
     }
 
+    // Used by the authentication filter
     public Account getAccountInternal(String firebaseUid)throws InterruptedException, ExecutionException {
         DocumentReference docRef = db.collection("accounts").document(firebaseUid);
         return docRef.get().get().toObject(Account.class);

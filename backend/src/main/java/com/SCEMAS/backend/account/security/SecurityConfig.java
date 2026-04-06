@@ -29,8 +29,8 @@ public class SecurityConfig {
 
         http.csrf(csrf -> csrf.disable())   // <--- disable CSRF using lambda
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/operator/**").hasAnyRole("ADMIN", "OPERATOR")
+                .requestMatchers("/admin/**").hasRole("SYSTEM_ADMINISTRATOR")
+                .requestMatchers("/operator/**").hasAnyRole("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(firebaseAuthFilter, UsernamePasswordAuthenticationFilter.class);

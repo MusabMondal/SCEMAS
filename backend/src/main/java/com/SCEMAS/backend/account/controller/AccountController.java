@@ -34,8 +34,7 @@ public class AccountController {
 
     // Get account by FirebaseUID
     @GetMapping("/{firebaseUid}")
-    public Account getAccount(@PathVariable String firebaseUid,
-                              HttpServletRequest req) throws Exception {
+    public Account getAccount(@PathVariable String firebaseUid, HttpServletRequest req) throws Exception {
 
         String requesterUid = (String) req.getAttribute("firebaseUid");
         AccountType role = (AccountType) req.getAttribute("role");
@@ -45,9 +44,7 @@ public class AccountController {
 
     // Update account detailes
    @PutMapping("/{firebaseUid}")
-    public Account updateAccount(@PathVariable String firebaseUid,
-                                 @RequestBody Account request,
-                                 HttpServletRequest req) throws Exception {
+    public Account updateAccount(@PathVariable String firebaseUid, @RequestBody Account request, HttpServletRequest req) throws Exception {
 
         String requesterUid = (String) req.getAttribute("firebaseUid");
         AccountType role = (AccountType) req.getAttribute("role");
@@ -64,8 +61,7 @@ public class AccountController {
 
     // Delete account
     @DeleteMapping("/{firebaseUid}")
-    public void deleteAccount(@PathVariable String firebaseUid,
-                              HttpServletRequest req) throws Exception {
+    public void deleteAccount(@PathVariable String firebaseUid, HttpServletRequest req) throws Exception {
 
         String requesterUid = (String) req.getAttribute("firebaseUid");
         AccountType role = (AccountType) req.getAttribute("role");
@@ -73,6 +69,7 @@ public class AccountController {
         accountService.deleteAccount(requesterUid, role, firebaseUid);
     }
 
+    // Gets the list of accounts but checks to make sure that the account requesting the list of accounts is allowed to access it.
     @GetMapping
     public List<Account> listaccounts(HttpServletRequest req) throws Exception {
 

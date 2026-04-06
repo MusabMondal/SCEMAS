@@ -1,28 +1,17 @@
 package com.SCEMAS.backend.alert;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "alerts")
 public class Alert {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+    private String id;
     private String stationId;
     private String sensorId;
-
-    @Enumerated(EnumType.STRING)
     private Condition condition;
-
-    @Column(name = "reading_value")
     private double value;
     private String severity;
     private String message;
     private String status;
-
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -41,19 +30,28 @@ public class Alert {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public Long getId() { return id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
     public String getStationId() { return stationId; }
+    public void setStationId(String stationId) { this.stationId = stationId; }
     public String getSensorId() { return sensorId; }
+    public void setSensorId(String sensorId) { this.sensorId = sensorId; }
     public Condition getCondition() { return condition; }
+    public void setCondition(Condition condition) { this.condition = condition; }
     public double getValue() { return value; }
+    public void setValue(double value) { this.value = value; }
     public String getSeverity() { return severity; }
+    public void setSeverity(String severity) { this.severity = severity; }
     public String getMessage() { return message; }
+    public void setMessage(String message) { this.message = message; }
     public String getStatus() { return status; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-
     public void setStatus(String status) {
         this.status = status;
         this.updatedAt = LocalDateTime.now();
     }
+    public void setStatusDirect(String status) { this.status = status; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

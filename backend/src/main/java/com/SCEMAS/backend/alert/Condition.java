@@ -3,5 +3,8 @@ package com.SCEMAS.backend.alert;
 public enum Condition {
     TEMPERATURE,
     HUMIDITY,
-    AIR_QUALITY
+    UV_INDEX,
+    WIND_SPEED,
+    PRECIPITATION,
+    PRESSURE
 }

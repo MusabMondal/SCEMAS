@@ -1,10 +1,15 @@
 package com.SCEMAS.backend.alert;
 
 import com.SCEMAS.backend.mqtt.dto.SensorReadingDto;
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.QuerySnapshot;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -13,23 +18,73 @@ public class AlertManager {
     private final AlertRepository alertRepository;
     private final AlertRuleRepository alertRuleRepository;
     private final AlertRiskEvaluator riskEvaluator;
+    private final Firestore firestore;
 
     public AlertManager(AlertRepository alertRepository,
                         AlertRuleRepository alertRuleRepository,
-                        AlertRiskEvaluator riskEvaluator) {
+                        AlertRiskEvaluator riskEvaluator,
+                        Firestore firestore) {
         this.alertRepository = alertRepository;
         this.alertRuleRepository = alertRuleRepository;
         this.riskEvaluator = riskEvaluator;
+        this.firestore = firestore;
     }
 
-    // Seed default threshold rules on startup if none exist
     @PostConstruct
-    public void seedDefaultRules() {
-        if (alertRuleRepository.count() == 0) {
-            alertRuleRepository.save(new AlertRule(Condition.TEMPERATURE, "GT", 0, 40.0));
-            alertRuleRepository.save(new AlertRule(Condition.HUMIDITY, "GT", 0, 85.0));
-            alertRuleRepository.save(new AlertRule(Condition.AIR_QUALITY, "GT", 0, 100.0));
-            System.out.println("[AlertManager] Default alert rules seeded.");
+    public void init() {
+        seedDefaultRules();
+        new Thread(this::scanExistingReadings).start();
+    }
+
+    // Seed default threshold rules — adds any missing condition rules on startup
+    private void seedDefaultRules() {
+        seedIfMissing(Condition.TEMPERATURE,   "GT",    0,     35.0);
+        seedIfMissing(Condition.HUMIDITY,      "GT",    0,     85.0);
+        seedIfMissing(Condition.UV_INDEX,      "GT",    0,      8.0);
+        seedIfMissing(Condition.WIND_SPEED,    "GT",    0,     80.0);
+        seedIfMissing(Condition.PRECIPITATION, "GT",    0,     25.0);
+        seedIfMissing(Condition.PRESSURE,      "LT",  970.0,    0);
+    }
+
+    private void seedIfMissing(Condition condition, String operator, double min, double max) {
+        if (alertRuleRepository.findByCondition(condition).isEmpty()) {
+            alertRuleRepository.save(new AlertRule(condition, operator, min, max));
+            System.out.println("[AlertManager] Seeded rule for: " + condition);
+        }
+    }
+
+    // Read all existing sensor_readings from Firestore and evaluate them
+    private void scanExistingReadings() {
+        try {
+            System.out.println("[AlertManager] Scanning existing sensor_readings...");
+            ApiFuture<QuerySnapshot> future = firestore.collection("sensor_readings").get();
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+
+            for (QueryDocumentSnapshot doc : documents) {
+                Map<String, Object> data = doc.getData();
+
+                String stationId   = (String) data.get("stationId");
+                String sensorId    = (String) data.get("sensorId");
+                String indType     = (String) data.get("indicatorType");
+                String unit        = (String) data.get("unit");
+                Object valObj      = data.get("value");
+
+                if (stationId == null || sensorId == null || indType == null || valObj == null) continue;
+
+                double value = ((Number) valObj).doubleValue();
+
+                SensorReadingDto reading = new SensorReadingDto();
+                reading.setSensorId(sensorId);
+                reading.setIndicatorType(indType);
+                reading.setValue(value);
+                reading.setUnit(unit != null ? unit : "");
+
+                evaluateSensorReading(stationId, reading);
+            }
+
+            System.out.println("[AlertManager] Finished scanning " + documents.size() + " readings.");
+        } catch (Exception e) {
+            System.err.println("[AlertManager] Error scanning sensor_readings: " + e.getMessage());
         }
     }
 
@@ -44,18 +99,16 @@ public class AlertManager {
         List<AlertRule> rules = alertRuleRepository.findByCondition(condition);
         for (AlertRule rule : rules) {
             if (riskEvaluator.evaluateReading(reading, rule)) {
-                // violation occurs → createAlert
                 createAlert(stationId, reading, rule);
             }
         }
     }
 
-    // createAlert (from state diagram) — success path: logAlertStatus → notify
-    //                                  — failure path: log error
+    // createAlert — success: logAlertStatus → notify | failure: log error
     private void createAlert(String stationId, SensorReadingDto reading, AlertRule rule) {
         try {
             String severity = riskEvaluator.determineSeverity(reading, rule);
-            String message = riskEvaluator.generateAlertMessage(reading, rule);
+            String message  = riskEvaluator.generateAlertMessage(reading, rule);
 
             Alert alert = new Alert(
                 stationId,
@@ -66,16 +119,13 @@ public class AlertManager {
                 message
             );
 
-            // logAlertStatus — store alert in history with ACTIVE status
             Alert saved = alertRepository.save(alert);
             System.out.println("[AlertManager] Alert logged: ID=" + saved.getId()
                 + " | " + severity + " | " + message);
 
-            // Notify city operator
             notifyCityOperator(saved);
 
         } catch (Exception e) {
-            // createAlertFailure — display failure message
             System.err.println("[AlertManager] Failed to create alert for sensor "
                 + reading.getSensorId() + ": " + e.getMessage());
         }
@@ -88,8 +138,8 @@ public class AlertManager {
             + ": " + alert.getMessage());
     }
 
-    // updateAlertStatus (from state diagram) — called by AlertController
-    public Optional<Alert> updateAlertStatus(Long alertId, String newStatus) {
+    // updateAlertStatus (from state diagram)
+    public Optional<Alert> updateAlertStatus(String alertId, String newStatus) {
         Optional<Alert> optional = alertRepository.findById(alertId);
         optional.ifPresent(alert -> {
             alert.setStatus(newStatus);
@@ -98,17 +148,9 @@ public class AlertManager {
         return optional;
     }
 
-    public List<Alert> getAlertHistory() {
-        return alertRepository.findAll();
-    }
-
-    public List<Alert> getActiveAlerts() {
-        return alertRepository.findByStatus("ACTIVE");
-    }
-
-    public Optional<Alert> findById(Long id) {
-        return alertRepository.findById(id);
-    }
+    public List<Alert> getAlertHistory()  { return alertRepository.findAll(); }
+    public List<Alert> getActiveAlerts()  { return alertRepository.findByStatus("ACTIVE"); }
+    public Optional<Alert> findById(String id) { return alertRepository.findById(id); }
 
     public Alert createManualAlert(String stationId, String sensorId, String message) {
         Alert alert = new Alert(stationId, sensorId, null, 0, "MEDIUM", message);
@@ -117,11 +159,9 @@ public class AlertManager {
         return saved;
     }
 
-    public List<AlertRule> getAllRules() {
-        return alertRuleRepository.findAll();
-    }
+    public List<AlertRule> getAllRules() { return alertRuleRepository.findAll(); }
 
-    public Optional<AlertRule> updateRule(Long ruleId, double minThreshold, double maxThreshold, String operator) {
+    public Optional<AlertRule> updateRule(String ruleId, double minThreshold, double maxThreshold, String operator) {
         Optional<AlertRule> optional = alertRuleRepository.findById(ruleId);
         optional.ifPresent(rule -> {
             rule.setMinThreshold(minThreshold);
@@ -134,10 +174,13 @@ public class AlertManager {
 
     private Condition mapToCondition(String indicatorType) {
         if (indicatorType == null) return null;
-        switch (indicatorType.toUpperCase()) {
-            case "TEMPERATURE": return Condition.TEMPERATURE;
-            case "HUMIDITY": return Condition.HUMIDITY;
-            case "AIR_QUALITY": return Condition.AIR_QUALITY;
+        switch (indicatorType.toLowerCase()) {
+            case "temperature":   return Condition.TEMPERATURE;
+            case "humidity":      return Condition.HUMIDITY;
+            case "uv_index":      return Condition.UV_INDEX;
+            case "wind_speed":    return Condition.WIND_SPEED;
+            case "precipitation": return Condition.PRECIPITATION;
+            case "pressure":      return Condition.PRESSURE;
             default: return null;
         }
     }

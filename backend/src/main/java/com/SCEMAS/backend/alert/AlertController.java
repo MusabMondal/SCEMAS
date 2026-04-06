@@ -28,9 +28,9 @@ public class AlertController {
         return alertManager.getActiveAlerts();
     }
 
-    // GET /api/alerts/{id} — single alert by ID
+    // GET /api/alerts/{id}
     @GetMapping("/{id}")
-    public ResponseEntity<Alert> getAlert(@PathVariable Long id) {
+    public ResponseEntity<Alert> getAlert(@PathVariable String id) {
         return alertManager.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -39,50 +39,44 @@ public class AlertController {
     // PATCH /api/alerts/{id}/status — updateAlertStatus (from state diagram)
     // Body: { "status": "ACKNOWLEDGED" } or { "status": "RESOLVED" }
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Alert> updateAlertStatus(@PathVariable Long id,
+    public ResponseEntity<Alert> updateAlertStatus(@PathVariable String id,
                                                    @RequestBody Map<String, String> body) {
         String newStatus = body.get("status");
-        if (newStatus == null) {
-            return ResponseEntity.badRequest().build();
-        }
+        if (newStatus == null) return ResponseEntity.badRequest().build();
         return alertManager.updateAlertStatus(id, newStatus)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // GET /api/alerts/rules — list all threshold rules
+    // GET /api/alerts/rules
     @GetMapping("/rules")
     public List<AlertRule> getAllRules() {
         return alertManager.getAllRules();
     }
 
-    // PUT /api/alerts/rules/{id} — edit a threshold rule
+    // PUT /api/alerts/rules/{id}
     // Body: { "operator": "GT", "minThreshold": 0, "maxThreshold": 45.0 }
     @PutMapping("/rules/{id}")
-    public ResponseEntity<AlertRule> updateRule(@PathVariable Long id,
+    public ResponseEntity<AlertRule> updateRule(@PathVariable String id,
                                                 @RequestBody Map<String, Object> body) {
         double min = body.containsKey("minThreshold") ? ((Number) body.get("minThreshold")).doubleValue() : 0;
         double max = body.containsKey("maxThreshold") ? ((Number) body.get("maxThreshold")).doubleValue() : 0;
         String operator = body.containsKey("operator") ? (String) body.get("operator") : "GT";
-
         return alertManager.updateRule(id, min, max, operator)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // POST /api/alerts/manual — create a manual alert (operator-triggered)
+    // POST /api/alerts/manual
     // Body: { "stationId": "S01", "sensorId": "sensor-1", "message": "Manual override" }
     @PostMapping("/manual")
     public ResponseEntity<Alert> createManualAlert(@RequestBody Map<String, String> body) {
         String stationId = body.get("stationId");
         String sensorId = body.get("sensorId");
         String message = body.get("message");
-
         if (stationId == null || sensorId == null || message == null) {
             return ResponseEntity.badRequest().build();
         }
-
-        Alert alert = alertManager.createManualAlert(stationId, sensorId, message);
-        return ResponseEntity.ok(alert);
+        return ResponseEntity.ok(alertManager.createManualAlert(stationId, sensorId, message));
     }
 }

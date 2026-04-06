@@ -56,11 +56,14 @@ public class AlertRiskEvaluator implements AlertAlgorithm {
     }
 
     public String evaluateImpact(SensorReadingDto reading) {
-        switch (reading.getIndicatorType().toUpperCase()) {
-            case "TEMPERATURE": return "Risk of heatwave conditions for citizens";
-            case "HUMIDITY": return "Risk of discomfort or respiratory issues";
-            case "AIR_QUALITY": return "Risk of air pollution health hazard";
-            default: return "Environmental threshold exceeded";
+        switch (reading.getIndicatorType().toLowerCase()) {
+            case "temperature":   return "Risk of heatwave conditions for citizens";
+            case "humidity":      return "Risk of discomfort or respiratory issues";
+            case "uv_index":      return "Risk of skin damage and UV-related health hazards";
+            case "wind_speed":    return "Risk of property damage and dangerous conditions";
+            case "precipitation": return "Risk of flooding and hazardous road conditions";
+            case "pressure":      return "Risk of severe storm system approaching";
+            default:              return "Environmental threshold exceeded";
         }
     }
 }

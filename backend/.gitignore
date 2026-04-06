@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Firebase credentials ###
+src/main/resources/scemasFirbaseKey.json

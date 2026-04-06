@@ -1,5 +1,7 @@
 cd frontend
 
+cd scemas
+
 npm install
 
 npm run dev

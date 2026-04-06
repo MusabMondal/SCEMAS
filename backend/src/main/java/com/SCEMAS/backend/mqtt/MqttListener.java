@@ -28,7 +28,7 @@ public class MqttListener {
 
             System.out.println("--------------------------------------------------------");
             System.out.println("Topic: " + topic);
-            System.out.println("Payload: " + payload);
+            // System.out.println("Payload: " + payload);
             System.out.println("--------------------------------------------------------");
 
             StationBatchDto batchDto = objectMapper.readValue(payload, StationBatchDto.class);
@@ -47,13 +47,16 @@ public class MqttListener {
                 }
 
                 for (SensorReadingDto reading : station.getSensorReading()) {
-                    System.out.println("  Sensor ID: " + reading.getSensorId());
-                    System.out.println("  Indicator: " + reading.getIndicatorType());
-                    System.out.println("  Value: " + reading.getValue() + " " + reading.getUnit());
+                    // System.out.println("Processing reading for station: " + station.getStationId());
+                    // System.out.println("  Sensor ID: " + reading.getSensorId());
+                    // System.out.println("  Indicator: " + reading.getIndicatorType());
+                    // System.out.println("  Value: " + reading.getValue() + " " + reading.getUnit());
 
                     telemetryService.processReading(
                             station.getStationId(),
                             reading.getSensorId(),
+                            station.getLongitude(),
+                            station.getLatitude(),
                             reading.getIndicatorType(),
                             reading.getValue(),
                             reading.getUnit(),

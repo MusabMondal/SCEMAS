@@ -42,6 +42,7 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -99,7 +100,6 @@
 			<artifactId>spring-cloud-gcp-starter-firestore</artifactId>
 		</dependency>
 	</dependencies>
-
 
 	<build>
 		<plugins>

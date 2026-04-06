@@ -17,7 +17,7 @@ public class FirebaseConfig {
 
         InputStream serviceAccount = getClass()
                 .getClassLoader()
-                .getResourceAsStream("scemasFirebaseKey.json");
+                .getResourceAsStream("scemasFirbaseKey.json");
 
         if (serviceAccount == null) {
             throw new RuntimeException("firebase-key.json not found");

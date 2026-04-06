@@ -1,27 +1,27 @@
-package com.SCEMAS.backend.Alert.Service;
+package com.SCEMAS.backend.alert.Service;
 
+import org.springframework.stereotype.Service;
 
+@Service
 public class NotificationService {
 
     public void sendNotification(String stationId, String alertMessage) {
-        // Implementation for sending notification to frontend
-        // This could be done using WebSocket or any other real-time communication method
+        System.out.println("[NOTIFY] Station " + stationId + ": " + alertMessage);
     }
 
     public void notifyPublic(String stationId, String alertMessage) {
-        // Implementation for sending public notifications (e.g., to a public dashboard)
+        System.out.println("[NOTIFY - Public] Station " + stationId + ": " + alertMessage);
     }
 
     public void notifyCityOperator(String stationId, String alertMessage) {
-        // Implementation for sending notifications to city operators
+        System.out.println("[NOTIFY - City Operator] Station " + stationId + ": " + alertMessage);
     }
 
     public void notifyAdministrator(String stationId, String alertMessage) {
-        // Implementation for sending notifications to administrators
+        System.out.println("[NOTIFY - Admin] Station " + stationId + ": " + alertMessage);
     }
 
     public void notifyEmergencyServices(String stationId, String alertMessage) {
-        // Implementation for sending notifications to emergency services
+        System.out.println("[NOTIFY - Emergency] Station " + stationId + ": " + alertMessage);
     }
-
 }

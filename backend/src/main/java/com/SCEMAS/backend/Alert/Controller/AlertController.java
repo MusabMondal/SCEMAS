@@ -1,17 +1,11 @@
-package com.SCEMAS.backend.alert.Controller;
+package com.SCEMAS.backend.Alert.Controller;
+
+import com.SCEMAS.backend.Alert.Service.Alert;
+import com.SCEMAS.backend.Alert.Service.AlertManager;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.SCEMAS.backend.alert.Service.Alert;
-import com.SCEMAS.backend.alert.Service.AlertManager;
 
 @RestController
 @RequestMapping("/api")
@@ -41,10 +35,11 @@ public class AlertController {
         return ResponseEntity.ok(alertManager.activateAlert(stationId));
     }
 
+    // PATCH /api/alerts/{alertId}/deactivate — resolve an alert by ID
     @PatchMapping("/alerts/{alertId}/deactivate")
     public ResponseEntity<Alert> deactivateAlert(@PathVariable String alertId) {
-    return alertManager.updateAlertStatus(alertId, "RESOLVED")
-            .map(ResponseEntity::ok)
-            .orElseGet(() -> ResponseEntity.notFound().build());
-}}
-
+        return alertManager.updateAlertStatus(alertId, "RESOLVED")
+                .<ResponseEntity<Alert>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+}

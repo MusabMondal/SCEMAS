@@ -1,6 +1,6 @@
 package com.SCEMAS.backend.mqtt;
 
-import com.SCEMAS.backend.alert.Service.AlertManager;
+import com.SCEMAS.backend.Alert.Service.AlertManager;
 import com.SCEMAS.backend.Sensor.Service.SensorService;
 import org.springframework.stereotype.Service;
 

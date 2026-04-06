@@ -1,7 +1,7 @@
-package com.SCEMAS.backend.alert.Controller;
+package com.SCEMAS.backend.Alert.Controller;
 
-import com.SCEMAS.backend.alert.Service.Alert;
-import com.SCEMAS.backend.alert.Service.AlertManager;
+import com.SCEMAS.backend.Alert.Service.Alert;
+import com.SCEMAS.backend.Alert.Service.AlertManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

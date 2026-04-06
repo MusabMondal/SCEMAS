@@ -4,16 +4,17 @@ package com.SCEMAS.backend.account.controller;
 import org.springframework.web.bind.annotation.*;
 
 import com.SCEMAS.backend.account.model.Account;
+import com.SCEMAS.backend.account.model.AccountType;
 import com.SCEMAS.backend.account.service.AccountService;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/accounts")
 public class AccountController {
     
-    @Autowired
     private final AccountService accountService;
 
     public AccountController(AccountService accountService) {
@@ -33,14 +34,27 @@ public class AccountController {
 
     // Get account by FirebaseUID
     @GetMapping("/{firebaseUid}")
-    public Account getAccount(@PathVariable String firebaseUid) throws Exception {
-        return accountService.getAccount(firebaseUid);
+    public Account getAccount(@PathVariable String firebaseUid,
+                              HttpServletRequest req) throws Exception {
+
+        String requesterUid = (String) req.getAttribute("firebaseUid");
+        AccountType role = (AccountType) req.getAttribute("role");
+
+        return accountService.getAccount(requesterUid, role, firebaseUid);
     }
 
     // Update account detailes
-    @PutMapping("/{firebaseUid}")
-    public Account updateAccount(@PathVariable String firebaseUid, @RequestBody Account request) throws Exception {
+   @PutMapping("/{firebaseUid}")
+    public Account updateAccount(@PathVariable String firebaseUid,
+                                 @RequestBody Account request,
+                                 HttpServletRequest req) throws Exception {
+
+        String requesterUid = (String) req.getAttribute("firebaseUid");
+        AccountType role = (AccountType) req.getAttribute("role");
+
         return accountService.updateAccount(
+                requesterUid,
+                role,
                 firebaseUid,
                 request.getName(),
                 request.getEmail(),
@@ -50,13 +64,21 @@ public class AccountController {
 
     // Delete account
     @DeleteMapping("/{firebaseUid}")
-    public void deleteAccount(@PathVariable String firebaseUid) throws Exception {
-        accountService.deleteAccount(firebaseUid);
+    public void deleteAccount(@PathVariable String firebaseUid,
+                              HttpServletRequest req) throws Exception {
+
+        String requesterUid = (String) req.getAttribute("firebaseUid");
+        AccountType role = (AccountType) req.getAttribute("role");
+
+        accountService.deleteAccount(requesterUid, role, firebaseUid);
     }
 
     @GetMapping
-    public List<Account> listaccounts() throws Exception {
-        return accountService.getAllAccounts();
+    public List<Account> listaccounts(HttpServletRequest req) throws Exception {
+
+        AccountType role = (AccountType) req.getAttribute("role");
+
+        return accountService.getAllAccounts(role);
     }
 
 }

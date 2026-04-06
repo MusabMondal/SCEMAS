@@ -46,10 +46,16 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                 FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
                 String uid = decodedToken.getUid();
 
-                Account account = accountService.getAccount(uid);
+                Account account = accountService.getAccountInternal(uid);
 
-                CustomUserPrincipal principal =
-                        new CustomUserPrincipal(account);
+                if (account == null) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
+                request.setAttribute("firebaseUid", account.getFirebaseUid());
+                request.setAttribute("role", account.getType());
+
+                CustomUserPrincipal principal = new CustomUserPrincipal(account);
 
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(
@@ -59,7 +65,6 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                         );
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
-
             } catch (Exception e) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;

@@ -22,7 +22,7 @@ public class AccountController {
     }
 
     // Creating a new account
-    @PostMapping
+    @PostMapping("/signup")
     public Account createAccount(@RequestBody Account request) throws Exception {
         return accountService.createAccount(
                 request.getName(),

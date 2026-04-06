@@ -39,7 +39,8 @@ public class SecurityConfig {
             .cors(cors -> {})
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST, "/accounts/**").permitAll() // 
+                // Allow anyone to POST /accounts (signup)
+                .requestMatchers(HttpMethod.POST, "/accounts/signup").permitAll()
 
                 // Admin-only endpoints
                 .requestMatchers("/admin/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR")
@@ -48,9 +49,10 @@ public class SecurityConfig {
                 .requestMatchers("/operator/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR")
 
                 // Public endpoints
-                .requestMatchers("/accounts/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR", "PUBLIC_USER")
+                .requestMatchers(HttpMethod.GET, "/accounts/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR", "PUBLIC_USER")
                 .requestMatchers("/public/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR", "PUBLIC_USER")
 
+                // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
             .addFilterBefore(firebaseAuthFilter, UsernamePasswordAuthenticationFilter.class);

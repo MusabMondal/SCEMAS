@@ -35,33 +35,31 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
     private AccountService accountService;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getMethod().equalsIgnoreCase("POST") && request.getRequestURI().endsWith("/accounts/signup");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
         String header = request.getHeader("Authorization");
 
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
-
-            try {
-                // Verify Firebase ID token
+        try {
+            if (header != null && header.startsWith("Bearer ")) {
+                String token = header.substring(7);
                 FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
                 String uid = decodedToken.getUid();
 
                 Account account = accountService.getAccountInternal(uid);
-                
-                if (account == null &&
-                    "POST".equalsIgnoreCase(request.getMethod()) &&
-                    request.getRequestURI().startsWith("/accounts")) {
 
-                    // allow first-time signup
-                    request.setAttribute("firebaseUid", uid);
-                    // don’t set role yet
-                    filterChain.doFilter(request, response);
+                if (account == null) {
+                    // Token is valid, but user not in DB
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     return;
                 }
 
-                // Existing user: set attributes and authenticate
+                // Existing user: set authentication
                 request.setAttribute("firebaseUid", account.getFirebaseUid());
                 request.setAttribute("role", account.getType());
 
@@ -71,16 +69,13 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                         new UsernamePasswordAuthenticationToken(
                                 principal,
                                 null,
-                                principal.getAuthorities()
-                        );
-
+                                principal.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(auth);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                return;
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
 
         filterChain.doFilter(request, response);

@@ -2,8 +2,9 @@ package com.SCEMAS.backend.mqtt;
 
 import org.springframework.stereotype.Service;
 
-import com.SCEMAS.backend.Alert.Service.AlertManager;
 import com.SCEMAS.backend.Sensor.Service.SensorService;
+import com.SCEMAS.backend.Data_Management.Service.DataManager;
+
 import java.util.Map;
 import java.util.HashMap;
 
@@ -11,9 +12,11 @@ import java.util.HashMap;
 public class TelemetryService {
 
     private final SensorService sensorService;
+    private final DataManager dataManager;
 
-    public TelemetryService(SensorService sensorService) {
+    public TelemetryService(SensorService sensorService, DataManager dataManager) {
         this.sensorService = sensorService;
+        this.dataManager = dataManager;
     }
 
     public void processReading(
@@ -26,17 +29,6 @@ public class TelemetryService {
             String unit,
             String timestamp
     ) {
-        System.out.println("Processing telemetry...");
-        System.out.println("Station ID: " + stationId);
-        System.out.println("Sensor ID: " + sensorId);
-        System.out.println("Longitude: " + longitude);
-        System.out.println("Latitude: " + latitude);
-        System.out.println("Indicator Type: " + indicatorType);
-        System.out.println("Value: " + value);
-        System.out.println("Unit: " + unit);
-        System.out.println("Timestamp: " + timestamp);
-        System.out.println("-----------------------------");
-
         Map<String, Object> telemetryData = new HashMap<>();
         telemetryData.put("stationId", stationId);
         telemetryData.put("sensorId", sensorId);
@@ -47,12 +39,17 @@ public class TelemetryService {
         telemetryData.put("unit", unit);
         telemetryData.put("timestamp", timestamp);
 
-        // Later:
-        // 1. save to database
+        // 1. Save raw reading
         sensorService.saveReadings(telemetryData);
 
-        // 2. check threshold for indicatorType
-        // 3. create alert if threshold exceeded
-        // 4. notify frontend with websocket
+        // 2. Update 5-minute aggregate immediately
+        dataManager.updateFiveMinuteAggregation(
+                stationId,
+                indicatorType,
+                value,
+                timestamp
+        );
+
+        // 3. Later: threshold checks / alerts / websocket
     }
 }

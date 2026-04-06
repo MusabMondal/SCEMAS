@@ -34,15 +34,6 @@ public class SensorService {
         */
         firestore.collection("sensor_readings")
             .add(telemetryData);
-
-        // Incremental aggregation cache update (minute bucket),
-        // so aggregation endpoints do not need to scan raw readings.
-        dataManager.updateAggregationBucket(
-            (String) telemetryData.get("stationId"),
-            (String) telemetryData.get("indicatorType"),
-            telemetryData.get("value"),
-            telemetryData.get("timestamp")
-        );
         
         /*
         =====================================================

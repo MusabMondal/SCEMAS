@@ -6,15 +6,23 @@ import com.SCEMAS.backend.Sensor.Service.SensorService;
 import com.SCEMAS.backend.Data_Management.Service.DataManager;
 
 import java.util.Map;
+import com.SCEMAS.backend.alert.Service.AlertManager;
+import com.SCEMAS.backend.Sensor.Service.SensorService;
+import org.springframework.stereotype.Service;
+
 import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class TelemetryService {
 
+    private final AlertManager alertManager;
     private final SensorService sensorService;
     private final DataManager dataManager;
 
     public TelemetryService(SensorService sensorService, DataManager dataManager) {
+    public TelemetryService(AlertManager alertManager, SensorService sensorService) {
+        this.alertManager = alertManager;
         this.sensorService = sensorService;
         this.dataManager = dataManager;
     }
@@ -51,5 +59,9 @@ public class TelemetryService {
         );
 
         // 3. Later: threshold checks / alerts / websocket
+        sensorService.saveReadings(telemetryData);
+
+        // Check thresholds and create alert if violated (alert-controller branch)
+        alertManager.checkForAlerts(stationId, indicatorType, value);
     }
 }

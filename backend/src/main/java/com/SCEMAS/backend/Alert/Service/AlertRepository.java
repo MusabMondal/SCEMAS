@@ -1,4 +1,4 @@
-package com.SCEMAS.backend.alert.Service;
+package com.SCEMAS.backend.Alert.Service;
 
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.Firestore;

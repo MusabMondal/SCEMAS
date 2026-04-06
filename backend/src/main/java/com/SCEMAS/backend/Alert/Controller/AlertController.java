@@ -1,4 +1,4 @@
-package com.SCEMAS.backend.alert.Controller;
+package com.SCEMAS.backend.Alert.Controller;
 
 import java.util.List;
 
@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.SCEMAS.backend.alert.Service.Alert;
-import com.SCEMAS.backend.alert.Service.AlertManager;
+import com.SCEMAS.backend.Alert.Service.Alert;
+import com.SCEMAS.backend.Alert.Service.AlertManager;
 
 @RestController
 @RequestMapping("/api")

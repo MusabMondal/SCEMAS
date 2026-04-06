@@ -1,4 +1,4 @@
-package com.SCEMAS.backend.alert.Service;
+package com.SCEMAS.backend.Alert.Service;
 
 import com.SCEMAS.backend.mqtt.dto.SensorReadingDto;
 import jakarta.annotation.PostConstruct;

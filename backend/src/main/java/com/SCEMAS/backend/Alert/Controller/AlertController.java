@@ -34,4 +34,12 @@ public class AlertController {
     public ResponseEntity<Alert> activateAlert(@PathVariable String stationId) {
         return ResponseEntity.ok(alertManager.activateAlert(stationId));
     }
+
+    // PATCH /api/alerts/{alertId}/deactivate — resolve an alert by ID
+    @PatchMapping("/alerts/{alertId}/deactivate")
+    public ResponseEntity<Alert> deactivateAlert(@PathVariable String alertId) {
+        return alertManager.updateAlertStatus(alertId, "RESOLVED")
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 }

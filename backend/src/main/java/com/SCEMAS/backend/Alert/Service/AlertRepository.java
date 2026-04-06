@@ -26,8 +26,9 @@ public class AlertRepository {
                 DocumentReference ref = db.collection(COLLECTION).document();
                 alert.setId(ref.getId());
             }
-            // Write to Firestore
-            db.collection(COLLECTION).document(alert.getId()).set(toMap(alert));
+            // Write to Firestore — .get() blocks until complete so errors surface immediately
+            db.collection(COLLECTION).document(alert.getId()).set(toMap(alert)).get();
+            System.out.println("[AlertRepository] Saved alert to Firestore: " + alert.getId());
         } catch (Exception e) {
             System.err.println("[AlertRepository] Error writing alert to Firestore: " + e.getMessage());
         }

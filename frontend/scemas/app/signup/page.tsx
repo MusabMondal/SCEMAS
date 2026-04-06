@@ -8,7 +8,7 @@ export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("USER");
+  const [role, setRole] = useState("PUBLIC_USER");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +16,7 @@ export default function Signup() {
     e.preventDefault(); // prevent page reload
 
     try {
-      await handleSignup(name, email, password, "USER");
+      await handleSignup(name, email, password, role);
     } catch (err: any) {
       setError(err.message);
     }
@@ -32,7 +32,7 @@ export default function Signup() {
     const idToken = await user.getIdToken();
 
     // Send request to backend
-    const res = await fetch("http://localhost:8080/accounts", {
+    const res = await fetch("http://localhost:8080/accounts/signup", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

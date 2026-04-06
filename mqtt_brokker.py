@@ -11,7 +11,7 @@ import paho.mqtt.client as mqtt
 BROKER = "localhost"
 PORT = 1883
 TOPIC = "scemas/stations/batch/telemetry"
-PUBLISH_INTERVAL_SECONDS = 10
+PUBLISH_INTERVAL_SECONDS = 30
 
 
 def is_broker_running(host: str = BROKER, port: int = PORT) -> bool:
@@ -205,7 +205,7 @@ if __name__ == "__main__":
 #       "readings": [
 #         {
 #           "sensorId": "temp-001",
-#           "indicatorType": "TEMPERATURE",
+#           "indicatorType": "a",
 #           "value": 24.6,
 #           "unit": "C"
 #         },

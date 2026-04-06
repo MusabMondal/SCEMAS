@@ -9,7 +9,9 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
+import org.springframework.stereotype.Service;
 
+@Service
 public class DataManager {
 
 
@@ -21,7 +23,7 @@ public class DataManager {
     }
 
 
-    public void aggregateData(String dataType, Double currentTimestamp, String intervalRange, String stationID) 
+    public Map<String,Object> aggregateData(String dataType, String intervalRange, String stationID) 
     {
         // data type: what data is being aggregated; i.e. temp, humidity,pressure...
         // retrieve data FOR aggregation
@@ -32,8 +34,10 @@ public class DataManager {
             
         // aggregations should have options for 5-min and 60-min ranges.
 
-        double minusFiveTimestamp = currentTimestamp - 300;
-        double minusSixtyTimestamp = currentTimestamp - 3600;
+        double currentTimestamp = System.currentTimeMillis() / 1000;
+
+        String minusFiveTimestamp = String.valueOf(currentTimestamp - 300);
+        String minusSixtyTimestamp = String.valueOf(currentTimestamp - 3600);
 
         ApiFuture<QuerySnapshot> future;
         if(intervalRange.equalsIgnoreCase("five_minutes"))
@@ -46,7 +50,11 @@ public class DataManager {
         }
         else // assumes hourly aggregation
         {
-            future = db.collection("sensor_readings").whereEqualTo("stationID", stationID).whereGreaterThan("timestamp", minusSixtyTimestamp ).whereEqualTo("indicatorType", dataType).get();
+            future = db.collection("sensor_readings")
+                .whereEqualTo("stationId", stationID)
+                .whereGreaterThan("timestamp", minusSixtyTimestamp )
+                .whereEqualTo("indicatorType", dataType)
+                .get();
         }
 
         // 1. GET DATA CORRESPONDING TO INDICATOR TYPE
@@ -84,10 +92,13 @@ public class DataManager {
                             // average
                             // interval: ?
             */ 
-        
+
+        return aggregationResult;
 
         }catch (Exception e) {
                 System.out.println("Error Aggregating Data");
+                e.printStackTrace();
+                return new HashMap<>();
             }
 
     }

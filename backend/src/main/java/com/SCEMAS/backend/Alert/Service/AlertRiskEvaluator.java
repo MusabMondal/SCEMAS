@@ -1,4 +1,4 @@
-package com.SCEMAS.backend.alert;
+package com.SCEMAS.backend.alert.Service;
 
 import com.SCEMAS.backend.mqtt.dto.SensorReadingDto;
 import org.springframework.stereotype.Component;
@@ -39,7 +39,6 @@ public class AlertRiskEvaluator implements AlertAlgorithm {
             if (reference == 0) return 0;
             return Math.max(0, (reference - value) / reference * 100);
         } else {
-            // BETWEEN: score based on distance from nearest boundary
             double distFromMax = Math.max(0, value - rule.getMaxThreshold());
             double distFromMin = Math.max(0, rule.getMinThreshold() - value);
             double excess = Math.max(distFromMax, distFromMin);

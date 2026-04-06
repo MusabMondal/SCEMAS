@@ -1,29 +1,37 @@
-package com.SCEMAS.backend.Alert.Controller;
+package com.SCEMAS.backend.alert.Controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.SCEMAS.backend.alert.Service.Alert;
+import com.SCEMAS.backend.alert.Service.AlertManager;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
+@RequestMapping("/api")
 public class AlertController {
 
+    private final AlertManager alertManager;
+
+    public AlertController(AlertManager alertManager) {
+        this.alertManager = alertManager;
+    }
+
+    // GET /api/alerts/{stationId} — active alerts for a station
     @GetMapping("/alerts/{stationId}")
-    public String getAlertsForStation(@PathVariable String stationId) {
-        // Implementation for fetching alerts for the given station ID
-        return "Alerts for station: " + stationId; 
+    public ResponseEntity<List<Alert>> getAlertsForStation(@PathVariable String stationId) {
+        return ResponseEntity.ok(alertManager.getAlertsForStation(stationId));
     }
 
+    // GET /api/alerts/{stationId}/all — all alerts (any status) for a station
     @GetMapping("/alerts/{stationId}/all")
-    public String getAllAlertsForStation(@PathVariable String stationId) {
-        // Implementation for fetching all alerts for the given station ID
-        return "All alerts for station: " + stationId;
+    public ResponseEntity<List<Alert>> getAllAlertsForStation(@PathVariable String stationId) {
+        return ResponseEntity.ok(alertManager.getAllAlertsForStation(stationId));
     }
 
+    // POST /api/alerts/{stationId}/activate — manually trigger an alert for a station
     @PostMapping("/alerts/{stationId}/activate")
-    public String activateAlert(@PathVariable String stationId) {
-        // Implementation for activating an alert for the given station ID
-        return "Alert activated for station: " + stationId;
+    public ResponseEntity<Alert> activateAlert(@PathVariable String stationId) {
+        return ResponseEntity.ok(alertManager.activateAlert(stationId));
     }
-
 }

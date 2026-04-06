@@ -1,4 +1,4 @@
-package com.SCEMAS.backend.alert;
+package com.SCEMAS.backend.alert.Service;
 
 import com.SCEMAS.backend.mqtt.dto.SensorReadingDto;
 

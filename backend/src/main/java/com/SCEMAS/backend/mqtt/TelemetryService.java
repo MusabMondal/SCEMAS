@@ -1,7 +1,6 @@
 package com.SCEMAS.backend.mqtt;
 
-import com.SCEMAS.backend.alert.AlertManager;
-import com.SCEMAS.backend.mqtt.dto.SensorReadingDto;
+import com.SCEMAS.backend.alert.Service.AlertManager;
 import com.SCEMAS.backend.Sensor.Service.SensorService;
 import org.springframework.stereotype.Service;
 
@@ -51,11 +50,6 @@ public class TelemetryService {
         sensorService.saveReadings(telemetryData);
 
         // Check thresholds and create alert if violated (alert-controller branch)
-        SensorReadingDto reading = new SensorReadingDto();
-        reading.setSensorId(sensorId);
-        reading.setIndicatorType(indicatorType);
-        reading.setValue(value);
-        reading.setUnit(unit);
-        alertManager.evaluateSensorReading(stationId, reading);
+        alertManager.checkForAlerts(stationId, indicatorType, value);
     }
 }

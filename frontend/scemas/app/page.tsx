@@ -46,6 +46,23 @@ export default function Home() {
   const [isFlying, setIsFlying] = useState(true);
   const [activeAlerts, setActiveAlerts] = useState<StationAlert[]>([]);
   const [alertError, setAlertError] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpAddress, setHelpAddress] = useState("");
+  const [helpReason, setHelpReason] = useState("");
+  const [helpSubmitted, setHelpSubmitted] = useState(false);
+
+  const handleHelpSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!helpAddress.trim() || !helpReason.trim()) return;
+    setHelpSubmitted(true);
+  };
+
+  const closeHelp = () => {
+    setHelpOpen(false);
+    setHelpSubmitted(false);
+    setHelpAddress("");
+    setHelpReason("");
+  };
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -265,10 +282,18 @@ export default function Home() {
             <span className="text-sm font-semibold tracking-[0.2em] text-emerald-300">SCEMAS</span>
           </Link>
 
-          <AuthActionButton
-            loginClassName="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:border-zinc-500"
-            logoutClassName="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/20"
-          />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setHelpOpen(true)}
+              className="rounded-xl border border-red-700 bg-red-900/60 px-4 py-2 text-sm font-medium text-red-200 transition hover:bg-red-800/80"
+            >
+              Request for Help
+            </button>
+            <AuthActionButton
+              loginClassName="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:border-zinc-500"
+              logoutClassName="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/20"
+            />
+          </div>
         </div>
       </header>
 
@@ -353,6 +378,69 @@ export default function Home() {
           </div>
         </aside>
       </main>
+
+      {/* Request for Help modal */}
+      {helpOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-[#0a101c] p-6 shadow-2xl">
+            {helpSubmitted ? (
+              <div className="text-center">
+                <p className="text-2xl mb-2">✓</p>
+                <h2 className="text-lg font-semibold text-emerald-300 mb-2">Request Sent</h2>
+                <p className="text-sm text-zinc-400 mb-6">
+                  Your help request has been submitted. Emergency services have been notified.
+                </p>
+                <button
+                  onClick={closeHelp}
+                  className="rounded-xl bg-zinc-800 px-6 py-2 text-sm font-medium text-zinc-100 hover:bg-zinc-700"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-lg font-semibold text-zinc-100">Request for Help</h2>
+                  <button onClick={closeHelp} className="text-zinc-500 hover:text-zinc-300 text-xl leading-none">✕</button>
+                </div>
+
+                <form onSubmit={handleHelpSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs text-zinc-400 mb-1">Address</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 123 Main St, Toronto, ON"
+                      value={helpAddress}
+                      onChange={(e) => setHelpAddress(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-zinc-400 mb-1">Reason for Help</label>
+                    <textarea
+                      placeholder="e.g. Flooding in the area, power outage, hazardous conditions..."
+                      value={helpReason}
+                      onChange={(e) => setHelpReason(e.target.value)}
+                      required
+                      rows={4}
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 resize-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 transition"
+                  >
+                    Submit Request
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,13 +2,11 @@ package com.SCEMAS.backend.mqtt;
 
 import org.springframework.stereotype.Service;
 
-import com.SCEMAS.backend.Sensor.Service.SensorService;
 import com.SCEMAS.backend.Data_Management.Service.DataManager;
 
 import java.util.Map;
 import com.SCEMAS.backend.Alert.Service.AlertManager;
 import com.SCEMAS.backend.Sensor.Service.SensorService;
-import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { fetchLatestStationReadings, type SensorReading } from "@/api/apiClient";
+import {
+  fetchAlertsForStation,
+  fetchLatestStationReadings,
+  type SensorReading,
+  type StationAlert,
+} from "@/api/apiClient";
 import { firestore } from "@/lib/firebase";
 
 declare global {
@@ -38,6 +43,8 @@ export default function Home() {
   const [readingsByType, setReadingsByType] = useState<Record<string, SensorReading>>({});
   const [error, setError] = useState<string | null>(null);
   const [isFlying, setIsFlying] = useState(true);
+  const [activeAlerts, setActiveAlerts] = useState<StationAlert[]>([]);
+  const [alertError, setAlertError] = useState<string | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -100,6 +107,33 @@ export default function Home() {
     return () => {
       mounted = false;
       unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAlerts = async () => {
+      try {
+        const alerts = await fetchAlertsForStation(STATION_ID);
+
+        if (!cancelled) {
+          setActiveAlerts(alerts.filter((alert) => alert.status === "ACTIVE"));
+          setAlertError(null);
+        }
+      } catch (fetchError) {
+        if (!cancelled) {
+          setAlertError(fetchError instanceof Error ? fetchError.message : "Failed to load alerts.");
+        }
+      }
+    };
+
+    loadAlerts();
+    const intervalId = window.setInterval(loadAlerts, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
     };
   }, []);
 
@@ -245,6 +279,28 @@ export default function Home() {
             ref={mapContainerRef}
             className="h-full min-h-[620px] w-full [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)]"
           />
+
+          <div className="absolute left-4 top-4 z-30 w-[min(430px,calc(100%-2rem))] rounded-xl border border-zinc-700/80 bg-black/70 p-3 text-xs text-zinc-200">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-semibold text-zinc-100">Active Alerts ({STATION_ID})</p>
+              <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${activeAlerts.length > 0 ? "bg-red-600/80 text-red-50" : "bg-emerald-700/70 text-emerald-50"}`}>
+                {activeAlerts.length > 0 ? `${activeAlerts.length} active` : "No active alerts"}
+              </span>
+            </div>
+
+            {alertError ? <p className="mb-2 text-red-300">{alertError}</p> : null}
+
+            <div className="max-h-28 space-y-1 overflow-auto pr-1">
+              {activeAlerts.slice(0, 4).map((alert) => (
+                <div key={alert.id} className="rounded-md border border-red-500/30 bg-red-950/40 px-2 py-1">
+                  <p className="font-semibold text-red-200">{alert.condition}</p>
+                  <p className="truncate text-zinc-200">{alert.message}</p>
+                </div>
+              ))}
+
+              {activeAlerts.length === 0 ? <p className="text-zinc-300">No triggered alerts right now.</p> : null}
+            </div>
+          </div>
 
           {isFlying ? (
             <div className="pointer-events-none absolute left-1/2 top-6 z-30 -translate-x-1/2 rounded-full border border-zinc-700/80 bg-black/55 px-4 py-2 text-xs tracking-[0.18em] text-zinc-200">

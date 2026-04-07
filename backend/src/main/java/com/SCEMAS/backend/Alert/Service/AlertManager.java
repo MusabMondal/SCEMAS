@@ -131,6 +131,32 @@ public class AlertManager {
         return saved;
     }
 
+    // GET /api/thresholds — returns all current rules
+    public List<AlertRule> getAllRules() {
+        return alertRuleRepository.findAll();
+    }
+
+    // PUT /api/thresholds/{condition} — updates threshold and refreshes cache
+    public Optional<AlertRule> updateThreshold(String conditionName, String operator, double minThreshold, double maxThreshold) {
+        Condition condition;
+        try {
+            condition = Condition.valueOf(conditionName.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+
+        List<AlertRule> rules = alertRuleRepository.findByCondition(condition);
+        AlertRule rule = rules.isEmpty() ? new AlertRule(condition, operator, minThreshold, maxThreshold)
+                                         : rules.get(0);
+        rule.setOperator(operator);
+        rule.setMinThreshold(minThreshold);
+        rule.setMaxThreshold(maxThreshold);
+        alertRuleRepository.save(rule);
+        loadRuleCache();
+        System.out.println("[AlertManager] Threshold updated for " + condition + ": " + operator + " min=" + minThreshold + " max=" + maxThreshold);
+        return Optional.of(rule);
+    }
+
     public Optional<Alert> updateAlertStatus(String alertId, String newStatus) {
         Optional<Alert> optional = alertRepository.findById(alertId);
         optional.ifPresent(alert -> {

@@ -32,8 +32,9 @@ public class SensorService {
         1. SAVE FULL HISTORY (sensor_readings)
         =====================================================
         */
-        firestore.collection("sensor_readings")
-            .add(telemetryData);
+       
+        // firestore.collection("sensor_readings")
+        //     .add(telemetryData);
         
         /*
         =====================================================
@@ -57,9 +58,9 @@ public class SensorService {
         stationData.put("longitude", telemetryData.get("longitude"));
         stationData.put("timestamp", telemetryData.get("timestamp"));
         
-        firestore.collection("stations")
-            .document((String) telemetryData.get("stationId"))
-            .set(stationData);
+        // firestore.collection("stations")
+        //     .document((String) telemetryData.get("stationId"))
+        //     .set(stationData);
 
         System.out.println("Sensor readings saved successfully.");
 

@@ -1,9 +1,16 @@
 package com.SCEMAS.backend.Alert.Service;
 
 import org.springframework.stereotype.Service;
+import com.SCEMAS.backend.Alert.Service.EmailService;
 
 @Service
 public class NotificationService {
+
+    private final EmailService emailService;
+
+    public NotificationService(EmailService emailService) {
+        this.emailService = emailService;
+    }
 
     public void sendNotification(String stationId, String alertMessage) {
         System.out.println("[NOTIFY] Station " + stationId + ": " + alertMessage);

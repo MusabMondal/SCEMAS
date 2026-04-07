@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import {
   fetchAggregated5MinuteData,
   fetchAlertsForStation,
@@ -10,7 +12,7 @@ import {
   type SensorReading,
   type StationAlert,
 } from "@/api/apiClient";
-import { firestore } from "@/lib/firebase";
+import { auth, firestore } from "@/lib/firebase";
 import AuthActionButton from "@/components/AuthActionButton";
 
 type MarkerInstance = {
@@ -63,6 +65,8 @@ const INDICATOR_LABELS: Record<string, string> = {
   wind_speed: "Wind Speed",
 };
 
+type AccountType = "PUBLIC_USER" | "CITY_OPERATOR" | "SYSTEM_ADMINISTRATOR";
+
 function formatLine(points: AggregatedReading[], xMin: number, xSpan: number, yMin: number, ySpan: number) {
   const width = 920;
   const height = 280;
@@ -92,11 +96,33 @@ export default function DashboardPage() {
   const [isLoadingAggregate, setIsLoadingAggregate] = useState(false);
   const [alertsByStation, setAlertsByStation] = useState<Record<string, StationAlert[]>>({});
   const [alertError, setAlertError] = useState<string | null>(null);
+  const [accountType, setAccountType] = useState<AccountType | null>(null);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapInstance | null>(null);
   const markersByStationRef = useRef<Record<string, MarkerInstance>>({});
   const hasCenteredRef = useRef(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setAccountType(null);
+        return;
+      }
+
+      const accountDoc = await getDoc(doc(firestore, "accounts", user.uid));
+      const type = accountDoc.data()?.type;
+
+      if (type === "PUBLIC_USER" || type === "CITY_OPERATOR" || type === "SYSTEM_ADMINISTRATOR") {
+        setAccountType(type);
+        return;
+      }
+
+      setAccountType(null);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const readingsCollection = collection(firestore, COLLECTION_NAME);
@@ -416,6 +442,14 @@ export default function DashboardPage() {
             >
               View Alerts
             </Link>
+            {(accountType === "SYSTEM_ADMINISTRATOR" || accountType === "CITY_OPERATOR") ? (
+              <Link
+                href="/thresholds"
+                className="rounded-xl border border-violet-500/40 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20"
+              >
+                Manage Thresholds
+              </Link>
+            ) : null}
             <AuthActionButton
               loginClassName="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:border-zinc-500"
               logoutClassName="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/20"

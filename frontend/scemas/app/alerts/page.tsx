@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   getFirestore,
   collection,
@@ -9,7 +12,7 @@ import {
   limit,
   onSnapshot,
 } from "firebase/firestore";
-import { app } from "@/lib/firebase";
+import { app, auth } from "@/lib/firebase";
 
 interface Alert {
   id: string;
@@ -47,14 +50,35 @@ export default function AlertsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const router = useRouter();
+  const db = useMemo(() => {
+    try {
+      return getFirestore(app);
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
-    let db;
-    try {
-      db = getFirestore(app);
-    } catch {
-      setError("Firebase not configured. Check your .env.local file.");
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      setIsAuthChecking(false);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  useEffect(() => {
+    if (isAuthChecking) {
+      return;
+    }
+
+    if (!db) {
       return;
     }
 
@@ -80,11 +104,29 @@ export default function AlertsPage() {
 
     // Unsubscribe when component unmounts — stops Firestore reads
     return () => unsubscribe();
-  }, []);
+  }, [db, isAuthChecking]);
+
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-zinc-500 text-sm">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
       <div className="max-w-6xl mx-auto">
+        <div className="mb-4">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            ← Return to Dashboard
+          </Link>
+        </div>
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
           Alert History
         </h1>
@@ -92,7 +134,13 @@ export default function AlertsPage() {
           Showing the 20 most recent alerts across all stations. Updates in real time.
         </p>
 
-        {loading && (
+        {!db && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            Firebase not configured. Check your .env.local file.
+          </div>
+        )}
+
+        {loading && db && (
           <p className="text-zinc-500 text-sm">Loading alerts...</p>
         )}
 

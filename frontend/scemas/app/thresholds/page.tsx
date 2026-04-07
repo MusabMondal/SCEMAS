@@ -1,6 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, firestore } from "@/lib/firebase";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
@@ -11,6 +15,8 @@ interface ThresholdRule {
   minThreshold: number;
   maxThreshold: number;
 }
+
+type AccountType = "PUBLIC_USER" | "CITY_OPERATOR" | "SYSTEM_ADMINISTRATOR";
 
 const CONDITION_LABELS: Record<string, string> = {
   TEMPERATURE:   "Temperature (°C)",
@@ -34,8 +40,42 @@ export default function ThresholdsPage() {
   const [editing, setEditing] = useState<Record<string, ThresholdRule>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [accountType, setAccountType] = useState<AccountType | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setAccountType(null);
+        setAuthLoading(false);
+        return;
+      }
+
+      const accountDoc = await getDoc(doc(firestore, "accounts", user.uid));
+      const type = accountDoc.data()?.type;
+
+      if (type === "PUBLIC_USER" || type === "CITY_OPERATOR" || type === "SYSTEM_ADMINISTRATOR") {
+        setAccountType(type);
+      } else {
+        setAccountType(null);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    if (accountType !== "SYSTEM_ADMINISTRATOR") {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     fetch(`${API_BASE}/thresholds`)
       .then((res) => {
         if (!res.ok) throw new Error(`Server returned ${res.status}`);
@@ -52,7 +92,7 @@ export default function ThresholdsPage() {
         setError("Could not load thresholds. Is the backend running? " + err.message);
         setLoading(false);
       });
-  }, []);
+  }, [accountType, authLoading]);
 
   const handleChange = (condition: string, field: keyof ThresholdRule, value: string) => {
     setEditing((prev) => ({
@@ -81,8 +121,8 @@ export default function ThresholdsPage() {
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       setSaved(condition);
       setTimeout(() => setSaved(null), 2000);
-    } catch (err: any) {
-      setError("Failed to save: " + err.message);
+    } catch (err: unknown) {
+      setError("Failed to save: " + (err instanceof Error ? err.message : "Unknown error"));
     } finally {
       setSaving(null);
     }
@@ -91,6 +131,15 @@ export default function ThresholdsPage() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
       <div className="max-w-3xl mx-auto">
+        <div className="mb-6">
+          <Link
+            href="/dashboard"
+            className="inline-flex rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            Return to Dashboard
+          </Link>
+        </div>
+
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
           Alert Thresholds
         </h1>
@@ -98,6 +147,22 @@ export default function ThresholdsPage() {
           Edit the threshold values for each sensor condition. Changes take effect immediately on the next MQTT reading.
         </p>
 
+        {authLoading && <p className="text-zinc-500 text-sm">Checking permissions...</p>}
+
+        {!authLoading && accountType !== null && accountType !== "SYSTEM_ADMINISTRATOR" && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700 mb-6">
+            You do not have permission to manage thresholds.
+          </div>
+        )}
+
+        {!authLoading && accountType === null && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700 mb-6">
+            Sign in to manage thresholds.
+          </div>
+        )}
+
+        {!authLoading && accountType !== "SYSTEM_ADMINISTRATOR" ? null : (
+          <>
         {loading && <p className="text-zinc-500 text-sm">Loading thresholds...</p>}
 
         {error && (
@@ -189,6 +254,8 @@ export default function ThresholdsPage() {
             );
           })}
         </div>
+          </>
+        )}
       </div>
     </div>
   );

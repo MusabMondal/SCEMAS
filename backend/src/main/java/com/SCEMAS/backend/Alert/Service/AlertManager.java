@@ -49,7 +49,6 @@ public class AlertManager {
         for (AlertRule r : existing) {
             if (r.getCondition() != null) existingConditions.add(r.getCondition());
         }
-        // Lowered thresholds for testing — simulator ranges overlap these frequently
         seedIfMissing(existingConditions, Condition.TEMPERATURE,   "GT",    0,    27.5);
         seedIfMissing(existingConditions, Condition.HUMIDITY,      "GT",    0,    80.0);
         seedIfMissing(existingConditions, Condition.UV_INDEX,      "GT",    0,     6.0);

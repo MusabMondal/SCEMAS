@@ -1,8 +1,12 @@
 package com.SCEMAS.backend.mqtt;
 
+import org.springframework.stereotype.Service;
+
+import com.SCEMAS.backend.Data_Management.Service.DataManager;
+
+import java.util.Map;
 import com.SCEMAS.backend.Alert.Service.AlertManager;
 import com.SCEMAS.backend.Sensor.Service.SensorService;
-import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,10 +16,12 @@ public class TelemetryService {
 
     private final AlertManager alertManager;
     private final SensorService sensorService;
+    private final DataManager dataManager;
 
-    public TelemetryService(AlertManager alertManager, SensorService sensorService) {
+    public TelemetryService(AlertManager alertManager, SensorService sensorService, DataManager dataManager) {
         this.alertManager = alertManager;
         this.sensorService = sensorService;
+        this.dataManager = dataManager;
     }
 
     public void processReading(
@@ -28,16 +34,6 @@ public class TelemetryService {
             String unit,
             String timestamp
     ) {
-        System.out.println("Processing telemetry...");
-        System.out.println("Station ID: " + stationId);
-        System.out.println("Sensor ID: " + sensorId);
-        System.out.println("Indicator Type: " + indicatorType);
-        System.out.println("Value: " + value);
-        System.out.println("Unit: " + unit);
-        System.out.println("Timestamp: " + timestamp);
-        System.out.println("-----------------------------");
-
-        // Save reading to Firestore (SensorController branch)
         Map<String, Object> telemetryData = new HashMap<>();
         telemetryData.put("stationId", stationId);
         telemetryData.put("sensorId", sensorId);
@@ -47,6 +43,19 @@ public class TelemetryService {
         telemetryData.put("value", value);
         telemetryData.put("unit", unit);
         telemetryData.put("timestamp", timestamp);
+
+        // 1. Save raw reading
+        sensorService.saveReadings(telemetryData);
+
+        // 2. Update 5-minute aggregate immediately
+        dataManager.updateFiveMinuteAggregation(
+                stationId,
+                indicatorType,
+                value,
+                timestamp
+        );
+
+        // 3. Later: threshold checks / alerts / websocket
         sensorService.saveReadings(telemetryData);
 
         // Check thresholds and create alert if violated (alert-controller branch)

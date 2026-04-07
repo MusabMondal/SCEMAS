@@ -23,8 +23,7 @@ export default function LoginPage() {
       const idToken = await userCredential.user.getIdToken();
       console.log("ID Token:", idToken);
 
-      // Redirect to dashboard
-      router.push("/");
+      router.push("/dashboard");
 
     } catch (err: any) {
       // Map Firebase errors to user-friendly messages

@@ -442,7 +442,7 @@ export default function DashboardPage() {
             >
               View Alerts
             </Link>
-            {(accountType === "SYSTEM_ADMINISTRATOR" || accountType === "CITY_OPERATOR") ? (
+            {(accountType === "SYSTEM_ADMINISTRATOR" ) ? (
               <Link
                 href="/thresholds"
                 className="rounded-xl border border-violet-500/40 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20"

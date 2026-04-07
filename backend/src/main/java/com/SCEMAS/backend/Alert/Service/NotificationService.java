@@ -1,4 +1,4 @@
-package com.SCEMAS.backend.alert.Service;
+package com.SCEMAS.backend.Alert.Service;
 
 import org.springframework.stereotype.Service;
 

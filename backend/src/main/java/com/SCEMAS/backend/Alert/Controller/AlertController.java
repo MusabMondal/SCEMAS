@@ -1,10 +1,14 @@
 package com.SCEMAS.backend.Alert.Controller;
 
+import java.util.List;
+
 import com.SCEMAS.backend.Alert.Service.Alert;
 import com.SCEMAS.backend.Alert.Service.AlertManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.SCEMAS.backend.Alert.Service.Alert;
+import com.SCEMAS.backend.Alert.Service.AlertManager;
 import java.util.List;
 
 @RestController

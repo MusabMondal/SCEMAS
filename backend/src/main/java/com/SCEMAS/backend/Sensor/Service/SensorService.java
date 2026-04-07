@@ -9,15 +9,18 @@ import java.util.ArrayList;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
+import com.SCEMAS.backend.Data_Management.Service.DataManager;
 
 
 @Service
 public class SensorService {
 
     private final Firestore firestore;
+    private final DataManager dataManager;
 
-    public SensorService(Firestore firestore) {
+    public SensorService(Firestore firestore, DataManager dataManager) {
         this.firestore = firestore;
+        this.dataManager = dataManager;
     }
 
     public void saveReadings(Map<String, Object> telemetryData) {

@@ -11,6 +11,7 @@ import {
   type StationAlert,
 } from "@/api/apiClient";
 import { firestore } from "@/lib/firebase";
+import AuthActionButton from "@/components/AuthActionButton";
 
 type MarkerInstance = {
   setLatLng: (coords: [number, number]) => void;
@@ -408,12 +409,18 @@ export default function DashboardPage() {
             Dashboard (all stations)
           </p>
 
-          <Link
-            href="/alerts"
-            className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
-          >
-            View Alerts
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/alerts"
+              className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
+            >
+              View Alerts
+            </Link>
+            <AuthActionButton
+              loginClassName="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:border-zinc-500"
+              logoutClassName="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/20"
+            />
+          </div>
         </div>
       </header>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AuthActionButton from "@/components/AuthActionButton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import {
@@ -264,12 +265,10 @@ export default function Home() {
             <span className="text-sm font-semibold tracking-[0.2em] text-emerald-300">SCEMAS</span>
           </Link>
 
-          <Link
-            href="/login"
-            className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:border-zinc-500"
-          >
-            Login
-          </Link>
+          <AuthActionButton
+            loginClassName="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:border-zinc-500"
+            logoutClassName="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/20"
+          />
         </div>
       </header>
 

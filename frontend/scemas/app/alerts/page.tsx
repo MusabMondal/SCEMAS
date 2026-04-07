@@ -10,6 +10,7 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { app } from "@/lib/firebase";
+import AuthGuard from "@/components/AuthGuard";
 
 interface Alert {
   id: string;
@@ -53,8 +54,10 @@ export default function AlertsPage() {
     try {
       db = getFirestore(app);
     } catch {
-      setError("Firebase not configured. Check your .env.local file.");
-      setLoading(false);
+      queueMicrotask(() => {
+        setError("Firebase not configured. Check your .env.local file.");
+        setLoading(false);
+      });
       return;
     }
 
@@ -83,7 +86,8 @@ export default function AlertsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
+    <AuthGuard>
+      <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
           Alert History
@@ -168,6 +172,7 @@ export default function AlertsPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AuthGuard>
   );
 }

@@ -1,17 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/lib/firebase";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next") || "/dashboard";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.replace(nextPath);
+        return;
+      }
+
+      setCheckingAuth(false);
+    });
+
+    return () => unsubscribe();
+  }, [nextPath, router]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -20,13 +37,21 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard");
+      router.push(nextPath);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unable to login. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-blue-950 p-4">
+        <p className="text-sm text-gray-300">Checking authentication...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-blue-950 p-4">

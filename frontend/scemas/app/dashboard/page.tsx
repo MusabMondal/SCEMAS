@@ -79,6 +79,7 @@ export default function DashboardPage() {
   const [readingsByStation, setReadingsByStation] = useState<Record<string, Record<string, SensorReading>>>({});
   const [error, setError] = useState<string | null>(null);
   const [selectedIndicator, setSelectedIndicator] = useState<string>("temperature");
+  const [selectedStationId, setSelectedStationId] = useState<string>("");
   const [aggregatesByStation, setAggregatesByStation] = useState<Record<string, AggregatedReading[]>>({});
   const [aggregateError, setAggregateError] = useState<string | null>(null);
   const [isLoadingAggregate, setIsLoadingAggregate] = useState(false);
@@ -149,8 +150,20 @@ export default function DashboardPage() {
   }, [readingsByStation]);
 
   useEffect(() => {
+    if (stationSummaries.length === 0) {
+      setSelectedStationId("");
+      return;
+    }
+
+    const stillExists = stationSummaries.some((station) => station.stationId === selectedStationId);
+    if (!stillExists) {
+      setSelectedStationId(stationSummaries[0].stationId);
+    }
+  }, [selectedStationId, stationSummaries]);
+
+  useEffect(() => {
     const loadAggregates = async () => {
-      if (stationSummaries.length === 0) {
+      if (!selectedStationId) {
         setAggregatesByStation({});
         return;
       }
@@ -159,34 +172,13 @@ export default function DashboardPage() {
       setAggregateError(null);
 
       try {
-        const results = await Promise.allSettled(
-          stationSummaries.map(async (station) => {
-            const points = await fetchAggregated5MinuteData(station.stationId, selectedIndicator);
-            return [station.stationId, points] as const;
-          }),
-        );
-
-        const next: Record<string, AggregatedReading[]> = {};
-        const failedStations: string[] = [];
-
-        for (const result of results) {
-          if (result.status === "fulfilled") {
-            const [stationId, points] = result.value;
-            next[stationId] = points
-              .slice()
-              .sort((a, b) => a.bucketStartEpoch - b.bucketStartEpoch)
-              .slice(-48);
-          } else {
-            const match = result.reason instanceof Error ? result.reason.message.match(/for\s([^\s]+)\s\(/i) : null;
-            failedStations.push(match?.[1] ?? "unknown-station");
-          }
-        }
-
-        setAggregatesByStation(next);
-
-        if (failedStations.length > 0) {
-          setAggregateError(`Could not load aggregates for: ${failedStations.join(", ")}. Showing available stations only.`);
-        }
+        const points = await fetchAggregated5MinuteData(selectedStationId, selectedIndicator);
+        setAggregatesByStation({
+          [selectedStationId]: points
+            .slice()
+            .sort((a, b) => a.bucketStartEpoch - b.bucketStartEpoch)
+            .slice(-48),
+        });
       } catch (aggregateFetchError) {
         setAggregateError(
           aggregateFetchError instanceof Error
@@ -199,7 +191,7 @@ export default function DashboardPage() {
     };
 
     loadAggregates();
-  }, [selectedIndicator, stationSummaries]);
+  }, [selectedIndicator, selectedStationId]);
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;
@@ -433,23 +425,40 @@ export default function DashboardPage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-4">
           <div>
             <h2 className="text-lg font-semibold">5-Minute Aggregated Trend (All Stations)</h2>
-            <p className="text-xs text-zinc-400">Average value per station from /api/data-management/aggregation/:stationId/5mins</p>
+            <p className="text-xs text-zinc-400">Average value for selected station from /api/data-management/aggregation/:stationId/5mins</p>
           </div>
 
-          <label className="text-xs text-zinc-300">
-            Indicator
-            <select
-              className="ml-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-              value={selectedIndicator}
-              onChange={(event) => setSelectedIndicator(event.target.value)}
-            >
-              {DISPLAY_ORDER.map((indicator) => (
-                <option key={indicator} value={indicator}>
-                  {INDICATOR_LABELS[indicator]}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-300">
+            <label>
+              Station
+              <select
+                className="ml-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+                value={selectedStationId}
+                onChange={(event) => setSelectedStationId(event.target.value)}
+              >
+                {stationSummaries.map((station) => (
+                  <option key={station.stationId} value={station.stationId}>
+                    {station.stationId}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Indicator
+              <select
+                className="ml-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+                value={selectedIndicator}
+                onChange={(event) => setSelectedIndicator(event.target.value)}
+              >
+                {DISPLAY_ORDER.map((indicator) => (
+                  <option key={indicator} value={indicator}>
+                    {INDICATOR_LABELS[indicator]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         {aggregateError ? (

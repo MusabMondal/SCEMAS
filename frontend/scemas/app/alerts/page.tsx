@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   getFirestore,
@@ -9,6 +10,8 @@ import {
   limit,
   onSnapshot,
 } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 
 interface Alert {
@@ -47,16 +50,30 @@ export default function AlertsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    let db;
-    try {
-      db = getFirestore(app);
-    } catch {
-      setError("Firebase not configured. Check your .env.local file.");
-      setLoading(false);
+    const auth = getAuth(app);
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      setIsCheckingAuth(false);
+    });
+
+    return () => unsubscribeAuth();
+  }, [router]);
+
+  useEffect(() => {
+    if (isCheckingAuth) {
       return;
     }
+
+    const db = getFirestore(app);
 
     // Order by createdAt desc, cap at 20 documents to limit Firestore read tokens
     const q = query(
@@ -80,7 +97,15 @@ export default function AlertsPage() {
 
     // Unsubscribe when component unmounts — stops Firestore reads
     return () => unsubscribe();
-  }, []);
+  }, [isCheckingAuth]);
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-zinc-50 p-8">
+        <p className="text-sm text-zinc-500">Checking authentication...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
@@ -88,9 +113,19 @@ export default function AlertsPage() {
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
           Alert History
         </h1>
-        <p className="text-sm text-zinc-500 mb-6">
-          Showing the 20 most recent alerts across all stations. Updates in real time.
-        </p>
+
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-zinc-500">
+            Showing the 20 most recent alerts across all stations. Updates in real time.
+          </p>
+
+          <Link
+            href="/dashboard"
+            className="inline-flex rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+          >
+            Return to Dashboard
+          </Link>
+        </div>
 
         {loading && (
           <p className="text-zinc-500 text-sm">Loading alerts...</p>

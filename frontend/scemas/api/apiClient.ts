@@ -57,7 +57,9 @@ export async function fetchAggregated5MinuteData(
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch 5-minute aggregates for ${stationId} (${indicatorType})`);
+    throw new Error(
+      `Failed to fetch 5-minute aggregates for ${stationId} (${indicatorType}) [${response.status} ${response.statusText}]`,
+    );
   }
 
   const payloadData = await response.json();

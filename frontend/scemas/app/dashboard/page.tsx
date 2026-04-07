@@ -159,7 +159,7 @@ export default function DashboardPage() {
       setAggregateError(null);
 
       try {
-        const results = await Promise.all(
+        const results = await Promise.allSettled(
           stationSummaries.map(async (station) => {
             const points = await fetchAggregated5MinuteData(station.stationId, selectedIndicator);
             return [station.stationId, points] as const;
@@ -167,14 +167,26 @@ export default function DashboardPage() {
         );
 
         const next: Record<string, AggregatedReading[]> = {};
-        for (const [stationId, points] of results) {
-          next[stationId] = points
-            .slice()
-            .sort((a, b) => a.bucketStartEpoch - b.bucketStartEpoch)
-            .slice(-48);
+        const failedStations: string[] = [];
+
+        for (const result of results) {
+          if (result.status === "fulfilled") {
+            const [stationId, points] = result.value;
+            next[stationId] = points
+              .slice()
+              .sort((a, b) => a.bucketStartEpoch - b.bucketStartEpoch)
+              .slice(-48);
+          } else {
+            const match = result.reason instanceof Error ? result.reason.message.match(/for\s([^\s]+)\s\(/i) : null;
+            failedStations.push(match?.[1] ?? "unknown-station");
+          }
         }
 
         setAggregatesByStation(next);
+
+        if (failedStations.length > 0) {
+          setAggregateError(`Could not load aggregates for: ${failedStations.join(", ")}. Showing available stations only.`);
+        }
       } catch (aggregateFetchError) {
         setAggregateError(
           aggregateFetchError instanceof Error

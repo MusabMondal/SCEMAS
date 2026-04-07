@@ -105,7 +105,6 @@ public class DataManager {
             ApiFuture<QuerySnapshot> future = db.collection("aggregated_5min")
                     .whereEqualTo("stationId", stationId)
                     .whereEqualTo("indicatorType", indicatorType)
-                    .orderBy("bucketStartEpoch")
                     .get();
 
             List<QueryDocumentSnapshot> docs = future.get().getDocuments();

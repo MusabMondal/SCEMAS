@@ -23,8 +23,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import org.springframework.http.HttpMethod;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -39,21 +37,8 @@ public class SecurityConfig {
             .cors(cors -> {})
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                // Allow anyone to POST /accounts (signup)
-                .requestMatchers(HttpMethod.POST, "/accounts/signup").permitAll()
-
-                // Admin-only endpoints
-                .requestMatchers("/admin/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR")
-
-                // Operator endpoints
-                .requestMatchers("/operator/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR")
-
-                // Public endpoints
-                .requestMatchers(HttpMethod.GET, "/accounts/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR", "PUBLIC_USER")
-                .requestMatchers("/public/**").hasAnyAuthority("SYSTEM_ADMINISTRATOR", "CITY_OPERATOR", "PUBLIC_USER")
-
-                // All other endpoints require authentication
-                .anyRequest().authenticated()
+                // Disable endpoint authentication requirements for all routes
+                .anyRequest().permitAll()
             )
             .addFilterBefore(firebaseAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

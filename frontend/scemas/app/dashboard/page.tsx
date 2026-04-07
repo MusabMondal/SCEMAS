@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
-import { fetchAggregated5MinuteData, type AggregatedReading, type SensorReading } from "@/api/apiClient";
+import {
+  fetchAggregated5MinuteData,
+  fetchAlertsForStation,
+  type AggregatedReading,
+  type SensorReading,
+  type StationAlert,
+} from "@/api/apiClient";
 import { firestore } from "@/lib/firebase";
 
 type MarkerInstance = {
@@ -83,6 +89,8 @@ export default function DashboardPage() {
   const [aggregatesByStation, setAggregatesByStation] = useState<Record<string, AggregatedReading[]>>({});
   const [aggregateError, setAggregateError] = useState<string | null>(null);
   const [isLoadingAggregate, setIsLoadingAggregate] = useState(false);
+  const [alertsByStation, setAlertsByStation] = useState<Record<string, StationAlert[]>>({});
+  const [alertError, setAlertError] = useState<string | null>(null);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapInstance | null>(null);
@@ -300,6 +308,57 @@ export default function DashboardPage() {
     [stationSummaries],
   );
 
+  const stationIds = useMemo(() => stationSummaries.map((station) => station.stationId), [stationSummaries]);
+
+  useEffect(() => {
+    if (stationIds.length === 0) {
+      setAlertsByStation({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadAlerts = async () => {
+      try {
+        const results = await Promise.allSettled(stationIds.map((stationId) => fetchAlertsForStation(stationId)));
+
+        if (cancelled) {
+          return;
+        }
+
+        const next: Record<string, StationAlert[]> = {};
+        const failedStations: string[] = [];
+
+        results.forEach((result, index) => {
+          const stationId = stationIds[index];
+          if (result.status === "fulfilled") {
+            next[stationId] = result.value.filter((alert) => alert.status === "ACTIVE");
+          } else {
+            next[stationId] = [];
+            failedStations.push(stationId);
+          }
+        });
+
+        setAlertsByStation(next);
+        setAlertError(
+          failedStations.length > 0 ? `Could not load alerts for: ${failedStations.join(", ")}` : null,
+        );
+      } catch {
+        if (!cancelled) {
+          setAlertError("Failed to load alert status.");
+        }
+      }
+    };
+
+    loadAlerts();
+    const intervalId = window.setInterval(loadAlerts, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [stationIds]);
+
   const chartSeries = useMemo(() => {
     return Object.entries(aggregatesByStation)
       .map(([stationId, points]) => ({
@@ -309,6 +368,12 @@ export default function DashboardPage() {
       .filter((series) => series.points.length > 0)
       .sort((a, b) => a.stationId.localeCompare(b.stationId));
   }, [aggregatesByStation]);
+
+  const activeAlerts = useMemo(() => {
+    return Object.entries(alertsByStation)
+      .flatMap(([stationId, alerts]) => alerts.map((alert) => ({ ...alert, stationId })))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [alertsByStation]);
 
   const chartBounds = useMemo(() => {
     if (chartSeries.length === 0) {
@@ -351,6 +416,28 @@ export default function DashboardPage() {
             ref={mapContainerRef}
             className="h-full min-h-[620px] w-full [filter:invert(1)_hue-rotate(180deg)_brightness(0.55)_contrast(1.1)_saturate(0.75)]"
           />
+
+          <div className="absolute left-4 top-4 z-30 w-[min(430px,calc(100%-2rem))] rounded-xl border border-zinc-700/80 bg-black/70 p-3 text-xs text-zinc-200">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-semibold text-zinc-100">Active Alerts</p>
+              <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${activeAlerts.length > 0 ? "bg-red-600/80 text-red-50" : "bg-emerald-700/70 text-emerald-50"}`}>
+                {activeAlerts.length > 0 ? `${activeAlerts.length} active` : "No active alerts"}
+              </span>
+            </div>
+
+            {alertError ? <p className="mb-2 text-red-300">{alertError}</p> : null}
+
+            <div className="max-h-28 space-y-1 overflow-auto pr-1">
+              {activeAlerts.slice(0, 4).map((alert) => (
+                <div key={alert.id} className="rounded-md border border-red-500/30 bg-red-950/40 px-2 py-1">
+                  <p className="font-semibold text-red-200">{alert.stationId} • {alert.condition}</p>
+                  <p className="truncate text-zinc-200">{alert.message}</p>
+                </div>
+              ))}
+
+              {activeAlerts.length === 0 ? <p className="text-zinc-300">No triggered alerts right now.</p> : null}
+            </div>
+          </div>
 
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_30%,rgba(16,185,129,0.18),transparent_35%),radial-gradient(circle_at_70%_45%,rgba(56,189,248,0.14),transparent_45%)]" />
 

@@ -11,6 +11,20 @@ export type SensorReading = {
   timestamp: string;
 };
 
+
+export type StationAlert = {
+  stationId: string;
+  sensorId: string;
+  condition: string;
+  value: number;
+  severity: string;
+  message: string;
+  createdAt: string;
+  id: string;
+  status: string;
+  updatedAt: string;
+};
+
 export type AggregatedReading = {
   stationId: string;
   indicatorType: string;
@@ -65,4 +79,23 @@ export async function fetchAggregated5MinuteData(
   const payloadData = await response.json();
 
   return payloadData as AggregatedReading[];
+}
+
+
+export async function fetchAlertsForStation(stationId: string): Promise<StationAlert[]> {
+  const response = await fetch(`${API_BASE_URL}/alerts/${stationId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch alerts for ${stationId} [${response.status} ${response.statusText}]`);
+  }
+
+  const payloadData = await response.json();
+
+  return payloadData as StationAlert[];
 }
